@@ -41,6 +41,15 @@ RUN apt-get update && \
     libtinyxml-dev \
     libzmq3-dev
 
+# Klonování a instalace YCM (YARP CMake Modules)
+RUN mkdir -p /opt/ycm && cd /opt/ycm && \
+    git clone https://github.com/robotology/ycm.git && \
+    cd ycm && \
+    mkdir build && cd build && \
+    cmake .. && \
+    make -j$(nproc) && \
+    make install
+
 # Klonování zdrojového kódu YARP
 RUN mkdir -p /opt/yarp && cd /opt/yarp && \
     git clone https://github.com/robotology/yarp.git && \
@@ -90,3 +99,4 @@ EXPOSE 8080 5900
 
 # Spouštěcí příkaz
 CMD ["/usr/bin/supervisord"]
+
