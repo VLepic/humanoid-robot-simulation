@@ -66,7 +66,7 @@ RUN cd /opt/yarp/yarp && \
 # Nastavení YARP proměnných prostředí
 ENV YARP_DIR=/opt/yarp/yarp/build
 ENV PATH=$PATH:$YARP_DIR/bin
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$YARP_DIR/lib
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/yarp/yarp/build/lib
 
 # Instalace ROS balíčků pro práci s Gazebo
 RUN apt-get update && \
@@ -76,17 +76,40 @@ RUN apt-get update && \
     ros-noetic-sensor-msgs \
     ros-noetic-gazebo-ros-pkgs
 
-# Nastavení pracovního adresáře
-WORKDIR /root
+# Klonování ergocub-gazebo-simulations
+RUN mkdir -p /opt/ergocub && cd /opt/ergocub && \
+    git clone https://github.com/icub-tech-iit/ergocub-gazebo-simulations.git
 
-# Inicializace ROS workspace
+
+# Nastavení proměnných prostředí pro Ergocub simulace
+ENV GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:/opt/ergocub/ergocub-gazebo-simulations/models
+ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:/opt/ergocub/ergocub-gazebo-simulations
+
+# Instalace závislostí pro simulace v Gazebo
+RUN apt-get update && \
+    apt-get install -y \
+    ros-noetic-controller-manager \
+    ros-noetic-joint-state-controller \
+    ros-noetic-effort-controllers \
+    ros-noetic-position-controllers \
+    ros-noetic-joint-trajectory-controller
+
+# Instalace gazebo-yarp-plugins
+RUN mkdir -p /opt/gazebo-yarp-plugins && cd /opt/gazebo-yarp-plugins && \
+    git clone https://github.com/robotology/gazebo-yarp-plugins.git
+
+RUN cd /opt/gazebo-yarp-plugins/gazebo-yarp-plugins && \
+    mkdir build && cd build && \
+    cmake .. && \
+    make -j2 && \
+    make install
+
+# Kompilace ROS workspace s ergocub-gazebo-simulations
 RUN mkdir -p /root/catkin_ws/src && \
+    cd /root/catkin_ws/src && \
+    ln -s /opt/ergocub/ergocub-gazebo-simulations . && \
     cd /root/catkin_ws && \
     /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
-
-# Nastavení zdrojového skriptu pro ROS
-RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc && \
-    echo "source /root/catkin_ws/devel/setup.bash" >> /root/.bashrc
 
 # Nastavení VNC a noVNC
 RUN mkdir -p /root/.vnc && \
@@ -99,4 +122,7 @@ EXPOSE 8080 5900
 
 # Spouštěcí příkaz
 CMD ["/usr/bin/supervisord"]
+
+
+
 
