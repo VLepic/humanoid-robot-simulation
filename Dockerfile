@@ -1,102 +1,52 @@
-# Vybereme základní obraz pro ROS Noetic na Ubuntu 20.04
-FROM ros:noetic-ros-base-focal
+# Use the Robotology base image with Gazebo
+FROM robotology/robotology-tdd:gazebo11master
 
-# Nastavení proměnných prostředí
-ENV DEBIAN_FRONTEND=noninteractive
-ENV USER=root
+# Install Kitware key to avoid NO_PUBKEY error
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1A127079A92F09ED
 
-# Aktualizace balíčků a instalace potřebných nástrojů
-RUN apt-get update && \
-    apt-get install -y \
-    build-essential \
-    git \
-    wget \
-    software-properties-common \
+# Install additional dependencies for noVNC and X11 server
+RUN apt-get update && apt-get install -y \
     x11vnc \
     xvfb \
-    xterm \
-    xfce4 \
     supervisor \
     novnc \
-    websockify \
-    ros-noetic-gazebo-ros \
-    ros-noetic-gazebo-plugins
+    websockify && \
+    apt-get clean
 
-# Instalace novější verze CMake (3.20 nebo vyšší)
-RUN apt-get remove -y cmake && \
-    wget https://github.com/Kitware/CMake/releases/download/v3.22.0/cmake-3.22.0-linux-x86_64.sh && \
-    mkdir /opt/cmake && \
-    sh cmake-3.22.0-linux-x86_64.sh --prefix=/opt/cmake --skip-license && \
-    ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
-
-# Instalace YARP závislostí
-RUN apt-get update && \
-    apt-get install -y \
-    libace-dev \
-    libgsl-dev \
-    libeigen3-dev \
-    libopencv-dev \
-    libsqlite3-dev \
-    libedit-dev \
-    libtinyxml-dev \
-    libzmq3-dev
-
-# Klonování a instalace YCM (YARP CMake Modules)
-RUN mkdir -p /opt/ycm && cd /opt/ycm && \
-    git clone https://github.com/robotology/ycm.git && \
-    cd ycm && \
-    mkdir build && cd build && \
-    cmake .. && \
-    make -j$(nproc) && \
-    make install
-
-# Klonování zdrojového kódu YARP
-RUN mkdir -p /opt/yarp && cd /opt/yarp && \
-    git clone https://github.com/robotology/yarp.git && \
-    cd yarp && \
-    git checkout master
-
-# Kompilace a instalace YARP
-RUN cd /opt/yarp/yarp && \
-    mkdir build && cd build && \
-    cmake .. && \
-    make -j$(nproc) && \
-    make install
-
-# Nastavení YARP proměnných prostředí
-ENV YARP_DIR=/opt/yarp/yarp/build
-ENV PATH=$PATH:$YARP_DIR/bin
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$YARP_DIR/lib
-
-# Instalace ROS balíčků pro práci s Gazebo
-RUN apt-get update && \
-    apt-get install -y \
-    ros-noetic-roscpp \
-    ros-noetic-std-msgs \
-    ros-noetic-sensor-msgs \
-    ros-noetic-gazebo-ros-pkgs
-
-# Nastavení pracovního adresáře
-WORKDIR /root
-
-# Inicializace ROS workspace
-RUN mkdir -p /root/catkin_ws/src && \
-    cd /root/catkin_ws && \
-    /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
-
-# Nastavení zdrojového skriptu pro ROS
-RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc && \
-    echo "source /root/catkin_ws/devel/setup.bash" >> /root/.bashrc
-
-# Nastavení VNC a noVNC
+# Set up directories and password for VNC
 RUN mkdir -p /root/.vnc && \
     x11vnc -storepasswd "vncpassword" /root/.vnc/passwd
 
+# Create the workspace directory and clone the ergocub-gazebo-simulations repository
+RUN mkdir -p /workspace && \
+    cd /workspace && \
+    git clone https://github.com/icub-tech-iit/ergocub-gazebo-simulations.git && \
+    cd ergocub-gazebo-simulations && \
+    mkdir build && cd build && \
+    cmake .. && \
+    make -j$(nproc) && \
+    make install
+
+# Set environment variables for Gazebo model and plugin paths
+ENV ERGOCUB_GAZEBO_PATH=/workspace/ergocub-gazebo-simulations
+ENV GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:$ERGOCUB_GAZEBO_PATH/models
+ENV GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:$ERGOCUB_GAZEBO_PATH/build
+
+# Copy the supervisord configuration
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Exponujeme porty pro VNC a noVNC
+# Expose ports for noVNC and VNC
 EXPOSE 8080 5900
 
-# Spouštěcí příkaz
+# Start supervisord to manage processes
 CMD ["/usr/bin/supervisord"]
+
+
+
+
+
+
+
+
+
 
