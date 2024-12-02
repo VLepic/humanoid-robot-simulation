@@ -8,9 +8,6 @@ services:
     container_name: Ergocub_simulation_full_desktop
     ports:
       - "6901:6901" # KasmVNC
-      - "11345:11345"
-      - "11346:11346"
-      - "11347:11347"
     environment:
       - PUID=1000
       - PGID=1000

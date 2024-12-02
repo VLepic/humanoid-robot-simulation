@@ -91,7 +91,9 @@ ENV PATH=/opt/robotology-superbuild/build-base/install/bin:/opt/robotology-super
 # Add ergoCub paths to environment variables
 ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:/opt/ergocub-software/install/share/ergoCub:/opt/ergocub-software/install/share/yarp
 ENV GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/opt/ergocub-software/install/share/ergoCub/robots:/opt/ergocub-software/install/share
-
+ENV GAZEBO_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/gazebo-yarp-plugins/build
+ENV GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:/opt/robotology-superbuild/build-gazebo/install/lib
+ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:/opt/gazebo-yarp-plugins/share/yarp
 
 # Expose the KasmVNC and YARP ports
 EXPOSE 6901 10000
