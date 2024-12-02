@@ -16,9 +16,6 @@ services:
       - PGID=1000
       - TZ=Europe/Prague
       - VNC_PW=password
-      - GAZEBO_MODEL_PATH=/usr/share/gazebo/models:/opt/gazebo-yarp-plugins/models
-      - GAZEBO_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/gazebo-yarp-plugins/build
-      - YARP_DATA_DIRS=/opt/gazebo-yarp-plugins/share/yarp
     volumes:
       - ./config:/config
       - ./gazebo_models:/usr/share/gazebo/models
