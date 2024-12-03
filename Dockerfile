@@ -47,43 +47,37 @@ RUN git config --global user.name "Your Name" && \
 # Clone the Robotology Superbuild
 RUN git clone https://github.com/robotology/robotology-superbuild.git /opt/robotology-superbuild
 
-# Build the base components (including YARP)
+# Build the base components (including YARP and core packages)
 RUN mkdir /opt/robotology-superbuild/build-base && \
     cd /opt/robotology-superbuild/build-base && \
     cmake .. \
         -DENABLE_YARP:BOOL=ON \
-        -DENABLE_GAZEBO:BOOL=ON \
-        -DBUILD_SHARED_LIBS:BOOL=ON \
-        -DENABLE_GAZEBO_CLASSIC:BOOL=ON \
-        -DENABLE_gazebo-yarp-plugins:BOOL=ON && \
+        -DROBOTOLOGY_ENABLE_CORE=ON \
+        -DROBOTOLOGY_USES_GAZEBO=ON \
+        -DROBOTOLOGY_USES_GZ=OFF \
+        -DBUILD_SHARED_LIBS=ON \
+        -DENABLE_yarpgui=ON \
+        -DROBOTOLOGY_USES_ROS2=ON \
+        -DROBOTOLOGY_USES_ROS=OFF \
+        -DROBOTOLOGY_USES_OPENCV=ON \
+        -DENABLE_GAZEBO:BOOL=OFF \
+        -DENABLE_GAZEBO_CLASSIC:BOOL=OFF \
+        -DROBOTOLOGY_ENABLE_DYNAMICS_FULL_DEPS=ON && \
     cmake --build . --config Release && \
     cmake --build . --target install
 
-# Build Gazebo with YARP plugins
+# Build Gazebo Classic and Gazebo YARP plugins
 RUN mkdir /opt/robotology-superbuild/build-gazebo && \
     cd /opt/robotology-superbuild/build-gazebo && \
     cmake .. \
-    -DENABLE_YARP:BOOL=OFF \
-    -DENABLE_GAZEBO:BOOL=ON \
-    -DENABLE_GAZEBO_CLASSIC:BOOL=ON \
-    -DENABLE_gazebo-yarp-plugins:BOOL=ON \
-    -DENABLE_gz-sim-forcetorque-system:BOOL=ON \
-    -DENABLE_gz-sim-yarp-robotinterface-system:BOOL=ON \
-    -DENABLE_gz-sim-imu-system:BOOL=ON \
-    -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/gazebo" && \
+        -DENABLE_YARP:BOOL=OFF \
+        -DENABLE_GAZEBO:BOOL=ON \
+        -DBUILD_SHARED_LIBS=ON \
+        -DENABLE_GAZEBO_CLASSIC:BOOL=ON \
+        -DENABLE_gazebo-yarp-plugins:BOOL=ON \
+        -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/gazebo" && \
     cmake --build . --config Release && \
     cmake --build . --target install
-
-# Clone and build gazebo-yarp-plugins
-RUN git clone https://github.com/robotology/gazebo-yarp-plugins.git /opt/gazebo-yarp-plugins && \
-    cd /opt/gazebo-yarp-plugins && \
-    mkdir build && cd build && \
-    cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/opt/gazebo-yarp-plugins/install && \
-    make -j$(nproc) && \
-    make install
-
 
 
 # Configure YARP server
@@ -98,20 +92,19 @@ RUN git clone https://github.com/icub-tech-iit/ergocub-software.git /opt/ergocub
     make -j$(nproc) && \
     make install
 
-
 # Set initial environment variables for Robotology Superbuild
-ENV YARP_DATA_DIRS=/opt/robotology-superbuild/build-base/install/share/yarp:/opt/ergocub-software/install/share/ergoCub:/opt/robotology-superbuild/build-base/install/share/yarp
+ENV YARP_DATA_DIRS=/opt/robotology-superbuild/build-base/install/share/yarp:/opt/robotology-superbuild/build-base/install/share/ICUB
 ENV GAZEBO_MODEL_PATH=/opt/robotology-superbuild/build-gazebo/install/share/gazebo/models
 ENV PATH=/opt/robotology-superbuild/build-base/install/bin:/opt/robotology-superbuild/build-gazebo/install/bin:$PATH
+ENV PATH=$PATH:/opt/robotology-superbuild/build-base/src/YARP/src
+
 
 # Add ergoCub paths to environment variables
 ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:/opt/ergocub-software/install/share/ergoCub:/opt/ergocub-software/install/share/yarp
 ENV GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/opt/ergocub-software/install/share/ergoCub/robots:/opt/ergocub-software/install/share
-ENV GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/gazebo-yarp-plugins/build
+ENV GAZEBO_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/gazebo-yarp-plugins/build
 ENV GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:/opt/robotology-superbuild/build-gazebo/install/lib
 ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:/opt/gazebo-yarp-plugins/share/yarp
-ENV GAZEBO_PLUGIN_PATH=/opt/robotology-superbuild/build-gazebo/plugins:$GAZEBO_PLUGIN_PATH
-ENV GAZEBO_PLUGIN_PATH=/opt/gazebo-yarp-plugins/install/lib:$GAZEBO_PLUGIN_PATH
 
 # Expose the KasmVNC and YARP ports
 EXPOSE 6901 10000
