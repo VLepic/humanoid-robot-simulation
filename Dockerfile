@@ -47,14 +47,20 @@ RUN git config --global user.name "Your Name" && \
 # Clone the Robotology Superbuild
 RUN git clone https://github.com/robotology/robotology-superbuild.git /opt/robotology-superbuild
 
-# Build the base components (including YARP)
+# Build the base components (including YARP and core packages)
 RUN mkdir /opt/robotology-superbuild/build-base && \
     cd /opt/robotology-superbuild/build-base && \
     cmake .. \
         -DENABLE_YARP:BOOL=ON \
+        -DROBOTOLOGY_ENABLE_CORE=ON \
+        -DROBOTOLOGY_USES_GAZEBO=ON \
+        -DROBOTOLOGY_USES_GZ=OFF \
+        -DBUILD_SHARED_LIBS=ON \
+        -DENABLE_yarpgui=ON \
+        -DROBOTOLOGY_USES_OPENCV=ON \
         -DENABLE_GAZEBO:BOOL=OFF \
         -DENABLE_GAZEBO_CLASSIC:BOOL=OFF \
-        -DENABLE_gazebo-yarp-plugins:BOOL=OFF && \
+        -DROBOTOLOGY_ENABLE_DYNAMICS_FULL_DEPS=ON && \
     cmake --build . --config Release && \
     cmake --build . --target install
 
@@ -62,13 +68,15 @@ RUN mkdir /opt/robotology-superbuild/build-base && \
 RUN mkdir /opt/robotology-superbuild/build-gazebo && \
     cd /opt/robotology-superbuild/build-gazebo && \
     cmake .. \
-    -DENABLE_YARP:BOOL=OFF \
-    -DENABLE_GAZEBO:BOOL=ON \
-    -DENABLE_GAZEBO_CLASSIC:BOOL=ON \
-    -DENABLE_gazebo-yarp-plugins:BOOL=ON \
-    -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/gazebo11" && \
+        -DENABLE_YARP:BOOL=OFF \
+        -DENABLE_GAZEBO:BOOL=ON \
+        -DBUILD_SHARED_LIBS=ON \
+        -DENABLE_GAZEBO_CLASSIC:BOOL=ON \
+        -DENABLE_gazebo-yarp-plugins:BOOL=ON \
+        -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/gazebo" && \
     cmake --build . --config Release && \
     cmake --build . --target install
+
 
 # Configure YARP server
 RUN mkdir -p /root/.config/yarp && \
@@ -82,11 +90,12 @@ RUN git clone https://github.com/icub-tech-iit/ergocub-software.git /opt/ergocub
     make -j$(nproc) && \
     make install
 
-
 # Set initial environment variables for Robotology Superbuild
 ENV YARP_DATA_DIRS=/opt/robotology-superbuild/build-base/install/share/yarp:/opt/robotology-superbuild/build-base/install/share/ICUB
 ENV GAZEBO_MODEL_PATH=/opt/robotology-superbuild/build-gazebo/install/share/gazebo/models
 ENV PATH=/opt/robotology-superbuild/build-base/install/bin:/opt/robotology-superbuild/build-gazebo/install/bin:$PATH
+ENV PATH=$PATH:/opt/robotology-superbuild/build-base/src/YARP/src
+
 
 # Add ergoCub paths to environment variables
 ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:/opt/ergocub-software/install/share/ergoCub:/opt/ergocub-software/install/share/yarp
