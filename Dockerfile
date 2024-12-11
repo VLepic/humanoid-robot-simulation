@@ -57,8 +57,6 @@ RUN mkdir /opt/robotology-superbuild/build-base && \
         -DROBOTOLOGY_USES_GZ=OFF \
         -DBUILD_SHARED_LIBS=ON \
         -DENABLE_yarpgui=ON \
-        -DROBOTOLOGY_USES_ROS2=ON \
-        -DROBOTOLOGY_USES_ROS=OFF \
         -DROBOTOLOGY_USES_OPENCV=ON \
         -DENABLE_GAZEBO:BOOL=OFF \
         -DENABLE_GAZEBO_CLASSIC:BOOL=OFF \
