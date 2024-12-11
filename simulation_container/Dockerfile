@@ -62,6 +62,8 @@ RUN mkdir /opt/robotology-superbuild/build-base && \
         -DROBOTOLOGY_USES_OPENCV=ON \
         -DENABLE_GAZEBO:BOOL=OFF \
         -DENABLE_GAZEBO_CLASSIC:BOOL=OFF \
+        -DENABLE_IDYNTREE:BOOL=ON \
+        -DENABLE_WHOLEBODYDYNAMICS:BOOL=ON \
         -DROBOTOLOGY_ENABLE_DYNAMICS_FULL_DEPS=ON && \
     cmake --build . --config Release && \
     cmake --build . --target install

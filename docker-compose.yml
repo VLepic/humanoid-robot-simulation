@@ -1,17 +1,16 @@
 version: "3.9"
 
 services:
-  kasmvnc:
-    #image: /vlepic/humanoid-robot-simulation:dev
+  simulation:
 
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: simulation_container/Dockerfile
     container_name: Ergocub_simulation_full_desktop
 
     ports:
       - "6901:6901" # KasmVNC
-      - "10000:10000" # VNC
+      - "10000:10000" # YARP server
     environment:
       - PUID=1000
       - PGID=1000
@@ -21,5 +20,28 @@ services:
       - ./config:/config
       - ./gazebo_models:/usr/share/gazebo/models
     restart: unless-stopped
+
+  control:
+    build:
+      context: .
+      dockerfile: control_container/Dockerfile
+    container_name: Ergocub_control
+    environment:
+      - ROS_DOMAIN_ID=0
+      - ROS_LOCALHOST_ONLY=0
+      - YARP_IP=127.0.0.1
+    depends_on:
+      - kasmvnc
+    networks:
+      - sim-control-network
+    volumes:
+      - ./ros2_ws:/root/ros2_ws # Mount local ROS 2 workspace if needed
+    restart: unless-stopped
+    command: ["/bin/bash", "-c", "source /opt/ros/galactic/setup.bash && /bin/bash"]
+
+networks:
+  sim-control-network:
+    driver: bridge
+
 
 
