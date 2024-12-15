@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: simulation_container/Dockerfile
-    container_name: Ergocub_simulation_full_desktop
+    container_name: Ergocub_simulation
 
     ports:
       - "6901:6901" # KasmVNC
@@ -30,8 +30,7 @@ services:
       - ROS_DOMAIN_ID=0
       - ROS_LOCALHOST_ONLY=0
       - YARP_IP=127.0.0.1
-    depends_on:
-      - kasmvnc
+      - YARP_NAMESPACE=Ergocub_simulation
     networks:
       - sim-control-network
     volumes:
