@@ -45,7 +45,10 @@ RUN git config --global user.name "Your Name" && \
     git config --global user.email "your.email@example.com"
 
 # Clone the Robotology Superbuild
-RUN git clone https://github.com/robotology/robotology-superbuild.git /opt/robotology-superbuild
+RUN git clone https://github.com/robotology/robotology-superbuild.git /opt/robotology-superbuild && \
+    cd /opt/robotology-superbuild && \
+    git checkout v2024.11.2 && \
+    cd ..
 
 # Build the base components (including YARP and core packages)
 RUN mkdir /opt/robotology-superbuild/build-base && \
@@ -57,7 +60,7 @@ RUN mkdir /opt/robotology-superbuild/build-base && \
         -DROBOTOLOGY_USES_GZ=OFF \
         -DBUILD_SHARED_LIBS=ON \
         -DENABLE_yarpgui=ON \
-        -DROBOTOLOGY_USES_ROS2=ON \
+        -DROBOTOLOGY_USES_ROS2=OFF \
         -DROBOTOLOGY_USES_ROS=OFF \
         -DROBOTOLOGY_USES_OPENCV=ON \
         -DENABLE_GAZEBO:BOOL=OFF \
@@ -89,6 +92,7 @@ RUN mkdir -p /root/.config/yarp && \
 # Clone and install ergoCub software
 RUN git clone https://github.com/icub-tech-iit/ergocub-software.git /opt/ergocub-software && \
     cd /opt/ergocub-software && \
+    git checkout v0.7.6 && \
     mkdir build && cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/opt/ergocub-software/install -DCMAKE_PREFIX_PATH=/opt/robotology-superbuild/build-base/install .. && \
     make -j$(nproc) && \
