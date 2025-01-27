@@ -203,7 +203,7 @@ ENV YARP_PLUGIN_PATH=/opt/robotology-superbuild/build-base/install/lib/yarp:$YAR
 
 
 
-
+# use yarpdev --from /opt/config/lidar_config.ini
 COPY /simulation_container/lidar_config.ini /opt/config/
 
 # Expose the KasmVNC and YARP ports
