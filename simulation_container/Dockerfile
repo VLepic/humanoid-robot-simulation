@@ -183,40 +183,28 @@ ENV XDG_RUNTIME_DIR=/run/user/0
 
 
 
-# Clone the repository
+# Clone the repository and prepare the workspace
 RUN git clone https://github.com/robotology/yarp-devices-ros2.git /opt/robotology-superbuild/build-yarp-devices-ros2 && \
-    cd /opt/robotology-superbuild/build-yarp-devices-ros2 && \
-    mkdir build && \
-    cd build && \
-    # Configure with necessary options
-    cmake .. \
-        -DYARP_ROS2_USE_SYSTEM_map2d_nws_ros2_msgs:BOOL=ON \
-        -DYARP_ROS2_USE_SYSTEM_yarp_control_msgs:BOOL=ON \
-        -DCMAKE_INSTALL_PREFIX=/opt/robotology-superbuild/build-base/install && \
-    # Build the project
-    cmake --build . -- -j$(nproc) && \
-    # Install the project
-    cmake --build . --target install && \
-    # Export YARP devices to the environment
-    echo "export YARP_DATA_DIRS=\$YARP_DATA_DIRS:/opt/robotology-superbuild/build-base/install/share/yarp" >> /root/.bashrc \
+    mkdir -p /opt/robotology-superbuild/build-yarp-devices-ros2/ros2_ws/src && \
+    cd /opt/robotology-superbuild/build-yarp-devices-ros2/ros2_ws && \
+    # Build the workspace using colcon
+    colcon build --symlink-install --install-base /opt/robotology-superbuild/build-base/install && \
+    # Source the installed environment
+    echo "source /opt/robotology-superbuild/build-base/install/setup.bash" >> /root/.bashrc && \
+    echo "export YARP_DATA_DIRS=\$YARP_DATA_DIRS:/opt/robotology-superbuild/build-base/install/share/yarp" >> /root/.bashrc && \
     echo "export AMENT_PREFIX_PATH=\$AMENT_PREFIX_PATH:/opt/robotology-superbuild/build-base/install" >> /root/.bashrc
 
-
+# Set the YARP plugin path
 ENV YARP_PLUGIN_PATH=/opt/robotology-superbuild/build-base/install/lib/yarp:$YARP_PLUGIN_PATH
 
 
-# Build the ROS 2 messages
-RUN cd /opt/robotology-superbuild/build-yarp-devices-ros2/ros2_interfaces_ws && \
-    colcon build --install-base /opt/robotology-superbuild/build-base/install && \
-    /bin/bash -c "source /opt/robotology-superbuild/build-base/install/setup.bash" && \
-    echo "source /opt/robotology-superbuild/build-base/install/setup.bash" >> /root/.bashrc
 
 
 
 
 
 
-
+COPY /simulation_container/lidar_config.ini /opt/config/
 
 # Expose the KasmVNC and YARP ports
 EXPOSE 6901 10000
