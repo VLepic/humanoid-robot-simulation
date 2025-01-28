@@ -44,37 +44,61 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.27.4/cmake-3.27.4
 RUN git config --global user.name "Your Name" && \
     git config --global user.email "your.email@example.com"
 
-# Install prerequisites and ROS 2 Galactic
-RUN apt update && apt install -y \
-    software-properties-common \
+# Set non-interactive mode for apt-get
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+# Install basic tools and set up locales
+RUN apt-get update && apt-get install -y \
+    locales \
+    tzdata \
     curl \
+    gnupg2 \
     lsb-release \
-    gnupg2 && \
-    add-apt-repository universe && \
-    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add - && \
-    sh -c 'echo "deb [arch=$(dpkg --print-architecture)] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list' && \
-    apt update && \
-    apt install -y ros-galactic-ros-base python3-colcon-common-extensions python3-rosdep python3-argcomplete && \
-    rm -rf /var/lib/apt/lists/*
+    build-essential \
+    cmake \
+    git \
+    python3 \
+    python3-pip \
+    && locale-gen en_US.UTF-8 && \
+    update-locale LANG=en_US.UTF-8
+
+# Add ROS Noetic package sources and install ROS Noetic
+RUN echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros1-latest.list && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add - && \
+    apt-get update && apt-get install -y \
+    ros-noetic-desktop-full \
+    python3-rosdep \
+    python3-catkin-tools \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Initialize rosdep
 RUN rosdep init && rosdep update
 
+# Set up ROS environment
+RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash"
 
-# Set up environment
-ENV ROS_DISTRO=galactic
-ENV ROS_VERSION=2
+# Create and build a Catkin workspace
+RUN mkdir -p /catkin_ws/src && \
+    /bin/bash -c "source /opt/ros/noetic/setup.bash && cd /catkin_ws && catkin_make"
+
+# Install additional Python dependencies via pip
+RUN pip3 install --no-cache-dir \
+    numpy \
+    matplotlib
+
+# Set up environment for ROS1 Noetic
+ENV ROS_DISTRO=noetic
+ENV ROS_VERSION=1
 ENV ROS_PYTHON_VERSION=3
-ENV PATH="/opt/ros/galactic/bin:$PATH"
-ENV PYTHONPATH="/opt/ros/galactic/lib/python3.8/site-packages:$PYTHONPATH"
-ENV LD_LIBRARY_PATH=/opt/ros/galactic/lib:/opt/ros/galactic/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/local/lib:$LD_LIBRARY_PATH
-ENV CMAKE_PREFIX_PATH="/opt/ros/galactic:$CMAKE_PREFIX_PATH"
-
-ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/galactic/lib/x86_64-linux-gnu
-ENV PKG_CONFIG_PATH=/opt/ros/galactic/lib/pkgconfig:$PKG_CONFIG_PATH
-ENV AMENT_PREFIX_PATH=/opt/ros/galactic:$AMENT_PREFIX_PATH
-ENV CMAKE_PREFIX_PATH="/lib/x86_64-linux-gnu:/opt/robotology-superbuild/build-base/install:/opt/ros/galactic:/usr/lib/x86_64-linux-gnu":$CMAKE_PREFIX_PATH
+ENV PATH="/opt/ros/noetic/bin:$PATH"
+ENV PYTHONPATH="/opt/ros/noetic/lib/python3/dist-packages:$PYTHONPATH"
+ENV LD_LIBRARY_PATH="/opt/ros/noetic/lib:/opt/ros/noetic/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/local/lib:$LD_LIBRARY_PATH"
+ENV CMAKE_PREFIX_PATH="/opt/ros/noetic:/opt/robotology-superbuild/build-base/install:/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH"
+ENV PKG_CONFIG_PATH="/opt/ros/noetic/lib/pkgconfig:$PKG_CONFIG_PATH"
+ENV AMENT_PREFIX_PATH=/opt/ros/noetic:$AMENT_PREFIX_PATH
+ENV CMAKE_PREFIX_PATH="/lib/x86_64-linux-gnu:/opt/robotology-superbuild/build-base/install:/opt/ros/noetic:/usr/lib/x86_64-linux-gnu":$CMAKE_PREFIX_PATH
 
 
 RUN apt-get update && apt-get install -y \
@@ -89,18 +113,14 @@ RUN apt-get update && apt-get install -y libc6-dev
 ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
 ENV LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LIBRARY_PATH
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    libpthread-stubs0-dev \
-    libboost-thread-dev \
-    libboost-system-dev \
-    libboost-filesystem-dev \
-    ros-galactic-test-msgs
 
 
-# Source ROS 2 setup script
-RUN echo "source /opt/ros/galactic/setup.bash" >> /root/.bashrc
+
+
+
+RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+
+
 
 
 # Clone the Robotology Superbuild
@@ -123,14 +143,14 @@ RUN mkdir /opt/robotology-superbuild/build-base && \
         -DROBOTOLOGY_USES_GZ=OFF \
         -DBUILD_SHARED_LIBS=ON \
         -DENABLE_yarpgui=ON \
-        -DROBOTOLOGY_USES_ROS2=ON \
-        -DROBOTOLOGY_USES_ROS=OFF \
+        -DROBOTOLOGY_USES_ROS2=OFF \
+        -DROBOTOLOGY_USES_ROS=ON \
         -DROBOTOLOGY_USES_OPENCV=ON \
         -DENABLE_GAZEBO:BOOL=OFF \
         -DENABLE_GAZEBO_CLASSIC:BOOL=OFF \
         -DENABLE_IDYNTREE:BOOL=ON \
         -DENABLE_WHOLEBODYDYNAMICS:BOOL=ON \
-        -Dtest_msgs_DIR="/opt/ros/galactic/share/test_msgs/cmake" \
+        -Dtest_msgs_DIR="/opt/ros/noetic/share/test_msgs/cmake" \
         -DROBOTOLOGY_ENABLE_DYNAMICS_FULL_DEPS=ON && \
     cmake --build . --config Release && \
     cmake --build . --target install
@@ -179,50 +199,21 @@ ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:/opt/gazebo-yarp-plugins/share/yarp
 ENV YARP_PLUGIN_PATH=/opt/robotology-superbuild/build-base/install/lib/yarp:$YARP_PLUGIN_PATH
 
 
+
+
+
+
+
+
 ENV XDG_RUNTIME_DIR=/run/user/0
 
 
 
-# Clone the repository
-RUN git clone https://github.com/robotology/yarp-devices-ros2.git /opt/robotology-superbuild/build-yarp-devices-ros2 && \
-    cd /opt/robotology-superbuild/build-yarp-devices-ros2 && \
-    mkdir build && \
-    cd build && \
-    # Configure with necessary options
-    cmake .. \
-        -DYARP_ROS2_USE_SYSTEM_map2d_nws_ros2_msgs:BOOL=ON \
-        -DYARP_ROS2_USE_SYSTEM_yarp_control_msgs:BOOL=ON \
-        -DCMAKE_INSTALL_PREFIX=/opt/robotology-superbuild/build-base/install && \
-    # Build the project
-    cmake --build . -- -j$(nproc) && \
-    # Install the project
-    cmake --build . --target install && \
-    # Export YARP devices to the environment
-    echo "export YARP_DATA_DIRS=\$YARP_DATA_DIRS:/opt/robotology-superbuild/build-base/install/share/yarp" >> /root/.bashrc \
-    echo "export AMENT_PREFIX_PATH=\$AMENT_PREFIX_PATH:/opt/robotology-superbuild/build-base/install" >> /root/.bashrc
-
-
-ENV YARP_PLUGIN_PATH=/opt/robotology-superbuild/build-base/install/lib/yarp:$YARP_PLUGIN_PATH
-
-
-# Build the ROS 2 messages
-RUN cd /opt/robotology-superbuild/build-yarp-devices-ros2/ros2_interfaces_ws && \
-    colcon build --install-base /opt/robotology-superbuild/build-base/install && \
-    /bin/bash -c "source /opt/robotology-superbuild/build-base/install/setup.bash" && \
-    echo "source /opt/robotology-superbuild/build-base/install/setup.bash" >> /root/.bashrc
-
-
-
-
-
-
-
-
-# Expose the KasmVNC and YARP ports
-EXPOSE 6901 10000
+# Expose the KasmVNC, YARP ports and ROS1 ports
+EXPOSE 6901 10000 11311
 
 # Creation of desktop icons
-RUN echo '#!/bin/bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
+RUN echo '#!/bin/bash\nyarpserver --ros' > /usr/local/bin/start_yarpserver.sh && \
     chmod +x /usr/local/bin/start_yarpserver.sh
 
 RUN echo '#!/bin/bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.sh && \
@@ -231,7 +222,7 @@ RUN echo '#!/bin/bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.sh && \
 RUN echo "[Desktop Entry]\n\
 Version=1.0\n\
 Type=Application\n\
-Name=YARP Server\n\
+Name=YARP Server with ros support\n\
 Exec=/usr/local/bin/start_yarpserver.sh\n\
 Icon=utilities-terminal\n\
 Terminal=true" > /usr/share/applications/yarpserver.desktop && \
