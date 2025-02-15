@@ -3,7 +3,8 @@ FROM kasmweb/core-cuda-focal:1.16.1
 
 # Set environment variables for the container
 ENV DEBIAN_FRONTEND=noninteractive \
-    TERM=xterm
+    TERM=xterm \
+    ROS_DISTRO=galactic
 
 USER root
 
@@ -62,7 +63,6 @@ RUN rosdep init && rosdep update
 
 
 # Set up environment
-ENV ROS_DISTRO=galactic
 ENV ROS_VERSION=2
 ENV ROS_PYTHON_VERSION=3
 ENV PATH="/opt/ros/galactic/bin:$PATH"
@@ -97,6 +97,16 @@ RUN apt-get update && apt-get install -y \
     libboost-system-dev \
     libboost-filesystem-dev \
     ros-galactic-test-msgs
+
+#idyntree deps
+RUN apt-get install -y \
+    build-essential \
+    libeigen3-dev \
+    libxml2-dev \
+    coinor-libipopt-dev \
+    libassimp-dev \
+    libirrlicht-dev \
+    libglfw3-dev
 
 
 # Source ROS 2 setup script
@@ -148,6 +158,55 @@ RUN mkdir /opt/robotology-superbuild/build-gazebo && \
     cmake --build . --config Release && \
     cmake --build . --target install
 
+RUN mkdir /opt/robotology-addons && \
+    cd /opt/robotology-addons && \
+    git clone https://github.com/robotology/idyntree && \
+    cd idyntree && \
+    mkdir build && cd build && \
+    cmake .. && \
+    cmake --build . --config Release && \
+    cmake --build . --target install
+
+
+# Clone and Build Whole-Body Estimators
+RUN cd /opt/robotology-addons && \
+    git clone https://github.com/robotology/whole-body-estimators.git && \
+    cd whole-body-estimators && \
+    mkdir build && cd build && \
+    cmake .. \
+      -DCMAKE_INSTALL_PREFIX=/opt/robotology-superbuild/install \
+      -DCMAKE_BUILD_TYPE=Release && \
+    make -j$(nproc) && \
+    make install
+
+ENV WBDEstimator_INSTALL_DIR=/opt/robotology-addons/whole-body-estimators
+ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:${WBDEstimator_INSTALL_DIR}/share/yarp
+
+
+# bipedal-locomotion-framework
+RUN apt-get update && apt-get install -y \
+    libeigen3-dev \
+    libspdlog-dev \
+    libopencv-dev
+
+RUN cd /opt/robotology-addons && \
+    git clone https://github.com/ami-iit/bipedal-locomotion-framework.git && \
+    cd bipedal-locomotion-framework && \
+    mkdir build && cd build && \
+    cmake .. \
+      -DCMAKE_INSTALL_PREFIX=/opt/robotology-superbuild/install \
+      -DCMAKE_BUILD_TYPE=Release && \
+    make -j$(nproc) && \
+    make install
+
+ENV CXX=/usr/bin/g++
+ENV CC=/usr/bin/gcc
+#ENV spdlog_DIR=/usr/lib/x86_64-linux-gnu/cmake/spdlog
+#ENV OpenCV_DIR=/usr/lib/x86_64-linux-gnu/cmake/opencv4
+ENV CMAKE_PREFIX_PATH=/opt/robotology-superbuild/install:$CMAKE_PREFIX_PATH
+ENV YARP_DATA_DIRS=/opt/robotology-superbuild/install/share/yarp:$YARP_DATA_DIRS
+
+
 
 # Configure YARP server
 RUN mkdir -p /root/.config/yarp && \
@@ -197,48 +256,96 @@ RUN git clone https://github.com/robotology/yarp-devices-ros2.git /opt/robotolog
 # Set the YARP plugin path
 ENV YARP_PLUGIN_PATH=/opt/robotology-superbuild/build-base/install/lib/yarp:$YARP_PLUGIN_PATH
 
+RUN apt install -y python3-pip python3-tk && \
+    pip3 install --upgrade matplotlib && \
+    pip3 install --upgrade pillow
+
+
+    #rviz2 for lidar visualization
+RUN apt-get update && apt-get install -y \
+    ros-galactic-rviz2 \
+    ros-galactic-rviz-ogre-vendor
+
+ENV LD_LIBRARY_PATH=/opt/ros/galactic/opt/rviz_ogre_vendor/lib:/opt/ros/galactic/opt/yaml_cpp_vendor/lib:$LD_LIBRARY_PATH
 
 
 
 
+# Install PyCharm Professional
+RUN mkdir -p /opt/pycharm-professional && \
+    cd /opt/pycharm-professional && \
+    wget https://download.jetbrains.com/python/pycharm-professional-2023.1.tar.gz && \
+    tar -xzf pycharm-professional-2023.1.tar.gz && \
+    rm pycharm-professional-2023.1.tar.gz
 
 
 # use yarpdev --from /opt/config/lidar_config.ini
-COPY /simulation_container/lidar_config.ini /opt/config/
+#COPY /simulation_container/yarp-ros2-ergocub-bridging/ /opt/yarp-ros2-ergocub-bridging/
+#COPY /simulation_container/python/ /opt/code/
 
 # Expose the KasmVNC and YARP ports
 EXPOSE 6901 10000
 
+
+
 # Creation of desktop icons
+# Yarpserver
 RUN echo '#!/bin/bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
-    chmod +x /usr/local/bin/start_yarpserver.sh
-
-RUN echo '#!/bin/bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.sh && \
-    chmod +x /usr/local/bin/start_gazebo.sh
-
-RUN echo "[Desktop Entry]\n\
+    chmod +x /usr/local/bin/start_yarpserver.sh && \
+# Gazebo
+    echo '#!/bin/bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.sh && \
+    chmod +x /usr/local/bin/start_gazebo.sh && \
+# PyCharm
+    echo '#!/bin/bash\n/opt/pycharm-professional/pycharm-2023.1/bin/pycharm.sh' > /usr/local/bin/start_pycharm.sh && \
+    chmod +x /usr/local/bin/start_pycharm.sh && \
+# Yarp-ROS LiDAR Bridge
+    echo '#!/bin/bash\nyarpdev --from /opt/yarp-ros2-ergocub-bridging/lidar_config.ini' > /usr/local/bin/start_yarp_ros_lidar_bridge.sh && \
+    chmod +x /usr/local/bin/start_yarp_ros_lidar_bridge.sh && \
+# YARP Server Desktop Entry
+    echo "[Desktop Entry]\n\
 Version=1.0\n\
 Type=Application\n\
 Name=YARP Server\n\
 Exec=/usr/local/bin/start_yarpserver.sh\n\
 Icon=utilities-terminal\n\
 Terminal=true" > /usr/share/applications/yarpserver.desktop && \
-    chmod +x /usr/share/applications/yarpserver.desktop
-
-RUN echo "[Desktop Entry]\n\
+    chmod +x /usr/share/applications/yarpserver.desktop && \
+# Gazebo Desktop Entry
+    echo "[Desktop Entry]\n\
 Version=1.0\n\
 Type=Application\n\
 Name=Gazebo\n\
 Exec=/usr/local/bin/start_gazebo.sh\n\
 Icon=utilities-terminal\n\
 Terminal=true" > /usr/share/applications/gazebo.desktop && \
-    chmod +x /usr/share/applications/gazebo.desktop
-
-RUN mkdir -p /home/kasm-user/Desktop && \
+    chmod +x /usr/share/applications/gazebo.desktop && \
+# PyCharm Desktop Entry
+    echo "[Desktop Entry]\n\
+Version=1.0\n\
+Type=Application\n\
+Name=PyCharm Professional\n\
+Exec=/usr/local/bin/start_pycharm.sh\n\
+Icon=/opt/pycharm-professional/pycharm-2023.1/bin/pycharm.png\n\
+Terminal=false" > /usr/share/applications/pycharm.desktop && \
+    chmod +x /usr/share/applications/pycharm.desktop && \
+# YARP-ROS LiDAR Bridge Desktop Entry
+    echo "[Desktop Entry]\n\
+Version=1.0\n\
+Type=Application\n\
+Name=YARP-ROS LiDAR Bridge\n\
+Exec=/usr/local/bin/start_yarp_ros_lidar_bridge.sh\n\
+Icon=utilities-terminal\n\
+Terminal=true" > /usr/share/applications/yarp_ros_lidar_bridge.desktop && \
+    chmod +x /usr/share/applications/yarp_ros_lidar_bridge.desktop && \
+# Move to Desktop
+    mkdir -p /home/kasm-user/Desktop && \
     cp /usr/share/applications/yarpserver.desktop /home/kasm-user/Desktop/ && \
     cp /usr/share/applications/gazebo.desktop /home/kasm-user/Desktop/ && \
+    cp /usr/share/applications/pycharm.desktop /home/kasm-user/Desktop/ && \
+    cp /usr/share/applications/yarp_ros_lidar_bridge.desktop /home/kasm-user/Desktop/ && \
     chmod +x /home/kasm-user/Desktop/*.desktop && \
     chown -R kasm-user:kasm-user /home/kasm-user/Desktop
+
 
 # Set the default command to run the YARP server
 CMD ["/usr/bin/supervisord"]
