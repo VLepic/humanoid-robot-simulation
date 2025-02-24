@@ -38,7 +38,7 @@ RUN curl https://packages.osrfoundation.org/gazebo.gpg --output /usr/share/keyri
     libassimp-dev \
     libirrlicht-dev \
     libglfw3-dev \
-    gz-harmonic && \
+    ignition-fortress && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -135,10 +135,10 @@ RUN rosdep init && rosdep update && \
         -DROBOTOLOGY_ENABLE_DYNAMICS=OFF \
 	    -DROBOTOLOGY_ENABLE_DYNAMICS_FULL_DEPS=ON \
 	    -DROBOTOLOGY_USES_GAZEBO=OFF \
-	    -DROBOTOLOGY_USES_GZ=ON \
+	    -DROBOTOLOGY_USES_GZ=OFF \
 	    -DROBOTOLOGY_USES_ROS=OFF \
 	    -DROBOTOLOGY_USES_ROS2=ON \
-	    -DROBOTOLOGY_USES_IGNITION=OFF \
+	    -DROBOTOLOGY_USES_IGNITION=ON \
 	    -DROBOTOLOGY_USES_PYTHON=ON \
         -Dtest_msgs_DIR="/opt/ros/humble/share/test_msgs/cmake" && \
     cmake --build . --config Release && \
