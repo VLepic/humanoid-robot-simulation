@@ -3,27 +3,23 @@ FROM kasmweb/core-cuda-focal:1.16.1
 
 # Set environment variables for the container
 ENV DEBIAN_FRONTEND=noninteractive \
-    TERM=xterm \
-    ROS_DISTRO=galactic
+    TERM=xterm
+
+ARG ROBOTOLOGY_SUPERBUILD_VERSION=2024.11.2
+ARG ERGOCUB_SOFTWARE_VERSION=v3.4.0
+ARG CMAKE_VERSION=3.31.5
+ARG ROS2_DISTRO=galactic
+
 
 USER root
 
-# Install prerequisites
-RUN apt-get update && \
-    apt-get install -y \
-    build-essential \
-    wget \
-    software-properties-common \
-    git \
-    curl \
-    libboost-all-dev \
-    libeigen3-dev \
-    libtinyxml2-dev \
-    libopencv-dev \
-    libsqlite3-dev \
-    libace-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Clone the Robotology Superbuild & install Robotology Superbuild apt dependencies
+RUN git clone https://github.com/robotology/robotology-superbuild.git /opt/robotology-superbuild && \
+    cd /opt/robotology-superbuild && \
+    git checkout v${ROBOTOLOGY_SUPERBUILD_VERSION} && \
+    apt-get update && \
+    apt-get install -y $(cat apt.txt) && \
+    apt-get install -y $(cat apt-python.txt)
 
 # Install Gazebo Classic and its development libraries
 RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -sc) main" > /etc/apt/sources.list.d/gazebo-stable.list' && \
@@ -36,16 +32,16 @@ RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable $(ls
     rm -rf /var/lib/apt/lists/*
 
 # Install a newer version of CMake
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.27.4/cmake-3.27.4-linux-x86_64.tar.gz && \
-    tar -xzf cmake-3.27.4-linux-x86_64.tar.gz -C /opt/ && \
-    ln -s /opt/cmake-3.27.4-linux-x86_64/bin/* /usr/local/bin/ && \
-    rm cmake-3.27.4-linux-x86_64.tar.gz
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
+    tar -xzf cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz -C /opt/ && \
+    ln -s /opt/cmake-${CMAKE_VERSION}-linux-x86_64/bin/* /usr/local/bin/ && \
+    rm cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
 
 # Configure Git
 RUN git config --global user.name "Your Name" && \
     git config --global user.email "your.email@example.com"
 
-# Install prerequisites and ROS 2 Galactic
+# Install prerequisites and ROS 2
 RUN apt update && apt install -y \
     software-properties-common \
     curl \
@@ -55,297 +51,8 @@ RUN apt update && apt install -y \
     curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add - && \
     sh -c 'echo "deb [arch=$(dpkg --print-architecture)] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list' && \
     apt update && \
-    apt install -y ros-galactic-ros-base python3-colcon-common-extensions python3-rosdep python3-argcomplete && \
+    apt install -y ros-${ROS2_DISTRO}-ros-desktop python3-colcon-common-extensions python3-rosdep python3-argcomplete && \
     rm -rf /var/lib/apt/lists/*
-
-# Initialize rosdep
-RUN rosdep init && rosdep update
-
-
-# Set up environment
-ENV ROS_VERSION=2
-ENV ROS_PYTHON_VERSION=3
-ENV PATH="/opt/ros/galactic/bin:$PATH"
-ENV PYTHONPATH="/opt/ros/galactic/lib/python3.8/site-packages:$PYTHONPATH"
-ENV LD_LIBRARY_PATH=/opt/ros/galactic/lib:/opt/ros/galactic/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/local/lib:$LD_LIBRARY_PATH
-ENV CMAKE_PREFIX_PATH="/opt/ros/galactic:$CMAKE_PREFIX_PATH"
-
-ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/galactic/lib/x86_64-linux-gnu
-ENV PKG_CONFIG_PATH=/opt/ros/galactic/lib/pkgconfig:$PKG_CONFIG_PATH
-ENV AMENT_PREFIX_PATH=/opt/ros/galactic:$AMENT_PREFIX_PATH
-ENV CMAKE_PREFIX_PATH="/lib/x86_64-linux-gnu:/opt/robotology-superbuild/build-base/install:/opt/ros/galactic:/usr/lib/x86_64-linux-gnu":$CMAKE_PREFIX_PATH
-
-
-RUN apt-get update && apt-get install -y \
-    python3-dev libboost-all-dev doxygen \
-    build-essential cmake git
-
-RUN apt-get install -y libpthread-stubs0-dev
-ENV CMAKE_HAVE_LIBC_PTHREAD = TRUE
-RUN apt-get update && apt-get install -y libc6-dev
-
-
-ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
-ENV LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LIBRARY_PATH
-
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    libpthread-stubs0-dev \
-    libboost-thread-dev \
-    libboost-system-dev \
-    libboost-filesystem-dev \
-    ros-galactic-test-msgs
-
-#idyntree deps
-RUN apt-get install -y \
-    build-essential \
-    libeigen3-dev \
-    libxml2-dev \
-    coinor-libipopt-dev \
-    libassimp-dev \
-    libirrlicht-dev \
-    libglfw3-dev
-
-
-# Source ROS 2 setup script
-RUN echo "source /opt/ros/galactic/setup.bash" >> /root/.bashrc
-
-
-# Clone the Robotology Superbuild
-RUN git clone https://github.com/robotology/robotology-superbuild.git /opt/robotology-superbuild && \
-    cd /opt/robotology-superbuild && \
-    git checkout v2024.11.2 && \
-    cd ..
-
-# Build the base components (including YARP and core packages)
-RUN mkdir /opt/robotology-superbuild/build-base && \
-    cd /opt/robotology-superbuild/build-base && \
-    cmake .. \
-        -DCMAKE_VERBOSE_MAKEFILE=ON \
-        -DENABLE_YARP:BOOL=ON \
-        -DCMAKE_THREAD_LIBS_INIT="-lpthread" \
-        -DCMAKE_HAVE_THREADS_LIBRARY="-lpthread" \
-        -DTHREADS_PREFER_PTHREAD_FLAG=ON \
-        -DPTHREADS_PREFER=ON \
-        -DROBOTOLOGY_USES_GAZEBO=ON \
-        -DROBOTOLOGY_USES_GZ=OFF \
-        -DBUILD_SHARED_LIBS=ON \
-        -DENABLE_yarpgui=ON \
-        -DROBOTOLOGY_USES_ROS2=ON \
-        -DROBOTOLOGY_USES_ROS=OFF \
-        -DROBOTOLOGY_USES_OPENCV=ON \
-        -DENABLE_GAZEBO:BOOL=OFF \
-        -DENABLE_GAZEBO_CLASSIC:BOOL=OFF \
-        -DENABLE_IDYNTREE:BOOL=ON \
-        -DENABLE_WHOLEBODYDYNAMICS:BOOL=ON \
-        -Dtest_msgs_DIR="/opt/ros/galactic/share/test_msgs/cmake" \
-        -DROBOTOLOGY_ENABLE_DYNAMICS_FULL_DEPS=ON && \
-    cmake --build . --config Release && \
-    cmake --build . --target install
-
-# Build Gazebo Classic and Gazebo YARP plugins
-RUN mkdir /opt/robotology-superbuild/build-gazebo && \
-    cd /opt/robotology-superbuild/build-gazebo && \
-    cmake .. \
-        -DENABLE_YARP:BOOL=OFF \
-        -DENABLE_GAZEBO:BOOL=ON \
-        -DBUILD_SHARED_LIBS=ON \
-        -DENABLE_GAZEBO_CLASSIC:BOOL=ON \
-        -DENABLE_gazebo-yarp-plugins:BOOL=ON \
-        -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/cmake/gazebo" && \
-    cmake --build . --config Release && \
-    cmake --build . --target install
-
-RUN mkdir /opt/robotology-addons && \
-    cd /opt/robotology-addons && \
-    git clone https://github.com/robotology/idyntree && \
-    cd idyntree && \
-    mkdir build && cd build && \
-    cmake .. && \
-    cmake --build . --config Release && \
-    cmake --build . --target install
-
-
-# Clone and Build Whole-Body Estimators
-RUN cd /opt/robotology-addons && \
-    git clone https://github.com/robotology/whole-body-estimators.git && \
-    cd whole-body-estimators && \
-    mkdir build && cd build && \
-    cmake .. \
-      -DCMAKE_INSTALL_PREFIX=/opt/robotology-superbuild/install \
-      -DCMAKE_BUILD_TYPE=Release && \
-    make -j$(nproc) && \
-    make install
-
-ENV WBDEstimator_INSTALL_DIR=/opt/robotology-addons/whole-body-estimators
-ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:${WBDEstimator_INSTALL_DIR}/share/yarp
-
-
-# bipedal-locomotion-framework
-RUN apt-get update && apt-get install -y \
-    libeigen3-dev \
-    libspdlog-dev \
-    libopencv-dev
-
-RUN cd /opt/robotology-addons && \
-    git clone https://github.com/ami-iit/bipedal-locomotion-framework.git && \
-    cd bipedal-locomotion-framework && \
-    mkdir build && cd build && \
-    cmake .. \
-      -DCMAKE_INSTALL_PREFIX=/opt/robotology-superbuild/install \
-      -DCMAKE_BUILD_TYPE=Release && \
-    make -j$(nproc) && \
-    make install
-
-ENV CXX=/usr/bin/g++
-ENV CC=/usr/bin/gcc
-#ENV spdlog_DIR=/usr/lib/x86_64-linux-gnu/cmake/spdlog
-#ENV OpenCV_DIR=/usr/lib/x86_64-linux-gnu/cmake/opencv4
-ENV CMAKE_PREFIX_PATH=/opt/robotology-superbuild/install:$CMAKE_PREFIX_PATH
-ENV YARP_DATA_DIRS=/opt/robotology-superbuild/install/share/yarp:$YARP_DATA_DIRS
-
-
-
-# Configure YARP server
-RUN mkdir -p /root/.config/yarp && \
-    echo "nameserver 127.0.0.1 10000" > /root/.config/yarp/config.yml
-
-# Clone and install ergoCub software
-RUN git clone https://github.com/icub-tech-iit/ergocub-software.git /opt/ergocub-software && \
-    cd /opt/ergocub-software && \
-    git checkout v0.7.6 && \
-    mkdir build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=/opt/ergocub-software/install -DCMAKE_PREFIX_PATH=/opt/robotology-superbuild/build-base/install .. && \
-    make -j$(nproc) && \
-    make install
-
-
-# Set initial environment variables for Robotology Superbuild
-ENV YARP_DATA_DIRS=/opt/robotology-superbuild/build-base/install/share/yarp:/opt/robotology-superbuild/build-base/install/share/ICUB:$YARP_DATA_DIRS
-ENV GAZEBO_MODEL_PATH=/opt/robotology-superbuild/build-gazebo/install/share/gazebo/models:$GAZEBO_MODEL_PATH
-ENV PATH=/opt/robotology-superbuild/build-base/install/bin:/opt/robotology-superbuild/build-gazebo/install/bin:$PATH
-ENV PATH=$PATH:/opt/robotology-superbuild/build-base/src/YARP/src
-
-
-# Add ergoCub paths to environment variables
-ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:/opt/ergocub-software/install/share/ergoCub:/opt/ergocub-software/install/share/yarp
-ENV GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/opt/ergocub-software/install/share/ergoCub/robots:/opt/ergocub-software/install/share
-ENV GAZEBO_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/gazebo-yarp-plugins/build:$GAZEBO_PLUGIN_PATH
-ENV GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:/opt/robotology-superbuild/build-gazebo/install/lib
-ENV YARP_DATA_DIRS=$YARP_DATA_DIRS:/opt/gazebo-yarp-plugins/share/yarp
-ENV YARP_PLUGIN_PATH=/opt/robotology-superbuild/build-base/install/lib/yarp:$YARP_PLUGIN_PATH
-
-
-ENV XDG_RUNTIME_DIR=/run/user/0
-
-
-
-# Clone the repository and prepare the workspace
-RUN git clone https://github.com/robotology/yarp-devices-ros2.git /opt/robotology-superbuild/build-yarp-devices-ros2 && \
-    mkdir -p /opt/robotology-superbuild/build-yarp-devices-ros2/ros2_ws/src && \
-    cd /opt/robotology-superbuild/build-yarp-devices-ros2/ros2_ws && \
-    # Build the workspace using colcon
-    colcon build --symlink-install --install-base /opt/robotology-superbuild/build-base/install && \
-    # Source the installed environment
-    echo "source /opt/robotology-superbuild/build-base/install/setup.bash" >> /root/.bashrc && \
-    echo "export YARP_DATA_DIRS=\$YARP_DATA_DIRS:/opt/robotology-superbuild/build-base/install/share/yarp" >> /root/.bashrc && \
-    echo "export AMENT_PREFIX_PATH=\$AMENT_PREFIX_PATH:/opt/robotology-superbuild/build-base/install" >> /root/.bashrc
-
-# Set the YARP plugin path
-ENV YARP_PLUGIN_PATH=/opt/robotology-superbuild/build-base/install/lib/yarp:$YARP_PLUGIN_PATH
-
-RUN apt install -y python3-pip python3-tk && \
-    pip3 install --upgrade matplotlib && \
-    pip3 install --upgrade pillow
-
-
-    #rviz2 for lidar visualization
-RUN apt-get update && apt-get install -y \
-    ros-galactic-rviz2 \
-    ros-galactic-rviz-ogre-vendor
-
-ENV LD_LIBRARY_PATH=/opt/ros/galactic/opt/rviz_ogre_vendor/lib:/opt/ros/galactic/opt/yaml_cpp_vendor/lib:$LD_LIBRARY_PATH
-
-
-
-
-# Install PyCharm Professional
-RUN mkdir -p /opt/pycharm-professional && \
-    cd /opt/pycharm-professional && \
-    wget https://download.jetbrains.com/python/pycharm-professional-2023.1.tar.gz && \
-    tar -xzf pycharm-professional-2023.1.tar.gz && \
-    rm pycharm-professional-2023.1.tar.gz
-
-
-# use yarpdev --from /opt/config/lidar_config.ini
-#COPY /simulation_container/yarp-ros2-ergocub-bridging/ /opt/yarp-ros2-ergocub-bridging/
-#COPY /simulation_container/python/ /opt/code/
-
-# Expose the KasmVNC and YARP ports
-EXPOSE 6901 10000
-
-
-
-# Creation of desktop icons
-# Yarpserver
-RUN echo '#!/bin/bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
-    chmod +x /usr/local/bin/start_yarpserver.sh && \
-# Gazebo
-    echo '#!/bin/bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.sh && \
-    chmod +x /usr/local/bin/start_gazebo.sh && \
-# PyCharm
-    echo '#!/bin/bash\n/opt/pycharm-professional/pycharm-2023.1/bin/pycharm.sh' > /usr/local/bin/start_pycharm.sh && \
-    chmod +x /usr/local/bin/start_pycharm.sh && \
-# Yarp-ROS LiDAR Bridge
-    echo '#!/bin/bash\nyarpdev --from /opt/yarp-ros2-ergocub-bridging/lidar_config.ini' > /usr/local/bin/start_yarp_ros_lidar_bridge.sh && \
-    chmod +x /usr/local/bin/start_yarp_ros_lidar_bridge.sh && \
-# YARP Server Desktop Entry
-    echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=YARP Server\n\
-Exec=/usr/local/bin/start_yarpserver.sh\n\
-Icon=utilities-terminal\n\
-Terminal=true" > /usr/share/applications/yarpserver.desktop && \
-    chmod +x /usr/share/applications/yarpserver.desktop && \
-# Gazebo Desktop Entry
-    echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=Gazebo\n\
-Exec=/usr/local/bin/start_gazebo.sh\n\
-Icon=utilities-terminal\n\
-Terminal=true" > /usr/share/applications/gazebo.desktop && \
-    chmod +x /usr/share/applications/gazebo.desktop && \
-# PyCharm Desktop Entry
-    echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=PyCharm Professional\n\
-Exec=/usr/local/bin/start_pycharm.sh\n\
-Icon=/opt/pycharm-professional/pycharm-2023.1/bin/pycharm.png\n\
-Terminal=false" > /usr/share/applications/pycharm.desktop && \
-    chmod +x /usr/share/applications/pycharm.desktop && \
-# YARP-ROS LiDAR Bridge Desktop Entry
-    echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=YARP-ROS LiDAR Bridge\n\
-Exec=/usr/local/bin/start_yarp_ros_lidar_bridge.sh\n\
-Icon=utilities-terminal\n\
-Terminal=true" > /usr/share/applications/yarp_ros_lidar_bridge.desktop && \
-    chmod +x /usr/share/applications/yarp_ros_lidar_bridge.desktop && \
-# Move to Desktop
-    mkdir -p /home/kasm-user/Desktop && \
-    cp /usr/share/applications/yarpserver.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/gazebo.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/pycharm.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/yarp_ros_lidar_bridge.desktop /home/kasm-user/Desktop/ && \
-    chmod +x /home/kasm-user/Desktop/*.desktop && \
-    chown -R kasm-user:kasm-user /home/kasm-user/Desktop
-
 
 # Set the default command to run the YARP server
 CMD ["/usr/bin/supervisord"]
