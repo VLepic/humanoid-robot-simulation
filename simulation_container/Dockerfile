@@ -98,7 +98,7 @@ ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}/l
 ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}/robotology/icub-tests/suites
 ENV BLOCKTEST_RESOURCE_PATH=${BLOCKTEST_RESOURCE_PATH}:${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}/bin
 #Python
-ENV PYTHONPATH=${PYTHONPATH}:$ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX/lib/python3.8/dist-packages
+ENV PYTHONPATH=${PYTHONPATH}:$ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX/lib/python3/dist-packages
 ENV PYTHONPATH=${PYTHONPATH}:$ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX/lib/python3.8/site-packages
 
 # Gazebo Classic configuration
@@ -129,6 +129,9 @@ RUN . /opt/ros/${ROS2_DISTRO}/setup.sh && \
     cmake --build . --config Release && \
     cmake --build . --target install
 
+ARG ERGOCUB_SOFTWARE_VERSION=0.7.7
+ENV GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}/share
+
 # Clone and install ergoCub software
 RUN git clone https://github.com/icub-tech-iit/ergocub-software.git /opt/ergocub-software && \
     cd /opt/ergocub-software && \
@@ -146,6 +149,9 @@ RUN git clone https://github.com/robotology/unicycle-footstep-planner /opt/unicy
     make -j$(nproc) && \
     make install
 
+ENV UnicyclePlanner_DIR=${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$UnicyclePlanner_DIR/lib
+
 # Clone and install walking controllers
 RUN git clone https://github.com/robotology/walking-controllers.git /opt/walking-controllers && \
     cd /opt/walking-controllers && \
@@ -159,13 +165,6 @@ ENV WalkingControllers_INSTALL_DIR=${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}
 ENV PATH=${PATH}:${WalkingControllers_INSTALL_DIR}/bin
 ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:${WalkingControllers_INSTALL_DIR}/share/ICUBcontrib
 
-# Install PyCharm Professional
-RUN mkdir -p /opt/pycharm-professional && \
-    cd /opt/pycharm-professional && \
-    wget https://download.jetbrains.com/python/pycharm-professional-2023.1.tar.gz && \
-    tar -xzf pycharm-professional-2023.1.tar.gz && \
-    rm pycharm-professional-2023.1.tar.gz
-
 # Creation of desktop icons
 # Yarpserver
 RUN echo '#!/bin/bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
@@ -173,9 +172,6 @@ RUN echo '#!/bin/bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
 # Gazebo
     echo '#!/bin/bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.sh && \
     chmod +x /usr/local/bin/start_gazebo.sh && \
-# PyCharm
-    echo '#!/bin/bash\n/opt/pycharm-professional/pycharm-2023.1/bin/pycharm.sh' > /usr/local/bin/start_pycharm.sh && \
-    chmod +x /usr/local/bin/start_pycharm.sh && \
 # Yarp-ROS LiDAR Bridge
     echo '#!/bin/bash\nyarpdev --from /opt/yarp-ros2-ergocub-bridging/lidar_config.ini' > /usr/local/bin/start_yarp_ros_lidar_bridge.sh && \
     chmod +x /usr/local/bin/start_yarp_ros_lidar_bridge.sh && \
@@ -197,15 +193,6 @@ Exec=/usr/local/bin/start_gazebo.sh\n\
 Icon=utilities-terminal\n\
 Terminal=true" > /usr/share/applications/gazebo.desktop && \
     chmod +x /usr/share/applications/gazebo.desktop && \
-# PyCharm Desktop Entry
-    echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=PyCharm Professional\n\
-Exec=/usr/local/bin/start_pycharm.sh\n\
-Icon=/opt/pycharm-professional/pycharm-2023.1/bin/pycharm.png\n\
-Terminal=false" > /usr/share/applications/pycharm.desktop && \
-    chmod +x /usr/share/applications/pycharm.desktop && \
 # YARP-ROS LiDAR Bridge Desktop Entry
     echo "[Desktop Entry]\n\
 Version=1.0\n\
@@ -219,10 +206,9 @@ Terminal=true" > /usr/share/applications/yarp_ros_lidar_bridge.desktop && \
     mkdir -p /home/kasm-user/Desktop && \
     cp /usr/share/applications/yarpserver.desktop /home/kasm-user/Desktop/ && \
     cp /usr/share/applications/gazebo.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/pycharm.desktop /home/kasm-user/Desktop/ && \
     cp /usr/share/applications/yarp_ros_lidar_bridge.desktop /home/kasm-user/Desktop/ && \
     chmod +x /home/kasm-user/Desktop/*.desktop && \
     chown -R kasm-user:kasm-user /home/kasm-user/Desktop
 
 # Set the default command to run the YARP server
-CMD ["/usr/bin/supervisord && . /opt/ros/${ROS2_DISTRO}/setup.sh"]
+CMD ["/usr/bin/supervisord && . /opt/ros/foxy/setup.sh"]
