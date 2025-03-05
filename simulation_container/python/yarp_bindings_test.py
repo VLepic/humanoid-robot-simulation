@@ -5,7 +5,8 @@ yarp.Network.init()
 
 # Create a YARP BufferedPort to read IMU data
 imu_port = yarp.BufferedPortBottle()
-imu_port.open("/imu_reader")  # Open local port
+if not imu_port.open("/imu_reader"):
+    print("Failed to open YARP port")
 
 # Connect to the IMU output (change the source port if necessary)
 yarp.Network.connect("/ergocubSim/head/inertials/measures:o", "/imu_reader")
@@ -15,19 +16,30 @@ print("Waiting for IMU data...")
 try:
     while True:
         bottle = imu_port.read()  # Read data from YARP
-        if bottle is not None and bottle.size() >= 4:  # Ensure data is available
-            # Parse each component
-            acc = [bottle.get(0).asList().get(i).asFloat64() for i in range(3)]
-            gyro = [bottle.get(1).asList().get(i).asFloat64() for i in range(3)]
-            mag = [bottle.get(2).asList().get(i).asFloat64() for i in range(3)]
-            orient = [bottle.get(3).asList().get(i).asFloat64() for i in range(3)]
+        if bottle is None:
+            print("No data received")
+        else:
+            #print(f"Received data: {bottle.toString()}")
+            acc_list = bottle.get(0)
+            if acc_list.isList():
+                acc_list = acc_list.asList()  # Convert to Bottle
 
-            # Print formatted IMU data
-            print(f"Accelerometer: {acc} m/s²")
-            print(f"Gyroscope: {gyro} rad/s")
-            print(f"Magnetometer: {mag} µT")
-            print(f"Orientation (Roll, Pitch, Yaw): {orient} degrees")
-            print("-" * 50)
+                # The first element of this list should be another list containing x, y, z
+                inner_list = acc_list.get(0)
+
+                if inner_list.isList():
+                    timestamp = inner_list.asList().get(1).asFloat64()
+                    values = inner_list.asList().get(0).asList()
+                    acc_values = [values.get(i).asFloat64() for i in range(values.size())]
+                    print(f"Accelerometer: {acc_values} m/s² timestamped: {timestamp}")
+                else:
+                    print("Unexpected format for accelerometer data!")
+
+
+
+
+
+
 
 except KeyboardInterrupt:
     print("\nStopping IMU reader...")
