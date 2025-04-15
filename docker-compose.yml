@@ -22,6 +22,7 @@ services:
       - ./simulation_container/yarp-ros2-ergocub-bridging/:/opt/yarp-ros2-ergocub-bridging/
       - ./simulation_container/python/:/opt/code/
       - ./gazebo_models:/usr/share/gazebo/models
+      - ./simulation_container/ergocub_modified/:/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified
     restart: unless-stopped
     deploy:
       resources:
