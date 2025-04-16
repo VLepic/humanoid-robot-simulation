@@ -279,6 +279,6 @@ RUN mkdir -p /home/kasm-user/Desktop && \
     chown -R kasm-user:kasm-user /home/kasm-user/Desktop
 
 COPY ./simulation_container/wholebodycfg/wbd_ecub_sim.xml /opt/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/estimators/
-
+COPY ./simulation_container/wholebodycfg/dcm_walking_with_joypad.ini /opt/robotology-superbuild/build-base/install/share/ICUBcontrib/robots/ergoCubGazeboV1/
 # Set the default command to run the YARP server
 CMD ["/usr/bin/supervisord && . /opt/ros/${ROS2_DISTRO}/setup.sh"]
