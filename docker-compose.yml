@@ -23,6 +23,7 @@ services:
       - ./simulation_container/python/:/opt/code/
       - ./gazebo_models:/usr/share/gazebo/models
       - ./simulation_container/ergocub_modified/:/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified
+      - ./simulation_container/gazebo_worlds/:/opt/gazebo_worlds/
     restart: unless-stopped
     deploy:
       resources:

@@ -183,8 +183,6 @@ RUN apt-get update && apt-get install -y \
 # Klonování aplikace (větev PyQt5)
 RUN git clone --branch GazeboClassicPyQt5 https://github.com/VLepic/GazeboWalledWorldDesigner /opt/GazeboWalledWorldDesigner
 
-
-
 RUN mkdir ${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}/share/ergoCub/robots/ergocub_modified
 
 RUN apt install -y curl gnupg2 lsb-release && \
@@ -202,6 +200,24 @@ RUN . &&\
     ros-galactic-xacro \
     python3-vcstool
 
+#Build ergocub ros2 package
+COPY ./simulation_container/ergocub_slam_bridge /opt/ros_ws/src/ergocub_slam_bridge
+WORKDIR /opt/ros_ws
+RUN . /opt/ros/galactic/setup.sh && \
+    colcon build --merge-install --install-base /opt/ros/galactic
+
+#Installing rviz2
+RUN apt-get update && apt-get install -y \
+    ros-galactic-rviz2 \
+    libogre-1.12-dev \
+    ros-galactic-rqt \
+    ros-galactic-nav2-bringup \
+    libcanberra-gtk-module &&\
+    rm -rf /var/lib/apt/lists/*
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/ros/galactic/opt/rviz_ogre_vendor/lib
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/ros/galactic/opt/yaml_cpp_vendor/lib
+
+
 # YARP Server Desktop Entry
 RUN echo '#!/usr/bin/env bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
     chmod +x /usr/local/bin/start_yarpserver.sh && \
@@ -215,9 +231,21 @@ RUN echo '#!/usr/bin/env bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh 
     Categories=Development;" > /usr/share/applications/yarpserver.desktop && \
     chmod 644 /usr/share/applications/yarpserver.desktop
 
+# Gazebo Walled World Designer
+RUN echo '#!/usr/bin/env bash\npython3 /opt/GazeboWalledWorldDesigner/main.py' > /usr/local/bin/start_GazeboWalledWorldDesigner.sh && \
+    chmod +x /usr/local/bin/start_GazeboWalledWorldDesigner.sh && \
+    echo "[Desktop Entry]\n\
+    Version=1.0\n\
+    Type=Application\n\
+    Name=Gazebo Walled World Designer\n\
+    Exec=/usr/local/bin/start_GazeboWalledWorldDesigner.sh\n\
+    Icon=utilities-terminal\n\
+    Terminal=true\n\
+    Categories=Development;" > /usr/share/applications/GazeboWalledWorldDesigner.desktop && \
+    chmod 644 /usr/share/applications/GazeboWalledWorldDesigner.desktop
 
 # Gazebo Desktop Entry
-RUN echo '#!/usr/bin/env bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.sh && \
+RUN echo '#!/usr/bin/env bash\ngazebo --verbose /opt/gazebo_worlds/generated.world' > /usr/local/bin/start_gazebo.sh && \
     chmod +x /usr/local/bin/start_gazebo.sh && \
     echo "[Desktop Entry]\n\
     Version=1.0\n\
@@ -229,43 +257,28 @@ RUN echo '#!/usr/bin/env bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.s
     Categories=Development;" > /usr/share/applications/gazebo.desktop && \
     chmod 644 /usr/share/applications/gazebo.desktop
 
-
-# Yarp-ROS2 LiDAR Bridge Desktop Entry
-RUN echo '#!/usr/bin/env bash\npython3 /opt/code/yarp2ros2bridge-lidar.py' > /usr/local/bin/start_yarp2ros2bridge-lidar.sh && \
-    chmod +x /usr/local/bin/start_yarp2ros2bridge-lidar.sh && \
+# ROS2 Launch for slam_with_yarp.launch.py
+RUN echo '#!/usr/bin/env bash\nsource /opt/ros/galactic/setup.bash && source /opt/ros/galactic/local_setup.bash && ros2 launch ergocub_slam_bridge slam_with_yarp.launch.py' > /usr/local/bin/start_slam_with_yarp.sh && \
+    chmod +x /usr/local/bin/start_slam_with_yarp.sh && \
     echo "[Desktop Entry]\n\
     Version=1.0\n\
     Type=Application\n\
-    Name=YARP-ROS2 LiDAR Bridge\n\
-    Exec=/usr/local/bin/start_yarp2ros2bridge-lidar.sh\n\
+    Name=SLAM with YARP\n\
+    Exec=/usr/local/bin/start_slam_with_yarp.sh\n\
     Icon=utilities-terminal\n\
     Terminal=true\n\
-    Categories=Development;" > /usr/share/applications/yarp2ros2bridge-lidar.desktop && \
-    chmod 644 /usr/share/applications/yarp2ros2bridge-lidar.desktop
+    Categories=Development;" > /usr/share/applications/slam_with_yarp.desktop && \
+    chmod 644 /usr/share/applications/slam_with_yarp.desktop
 
-
-# Yarp-ROS2 IMU Head Bridge Desktop Entry
-RUN echo '#!/usr/bin/env bash\npython3 /opt/code/yarp2ros2bridge-imu-head.py' > /usr/local/bin/start_yarp2ros2bridge-imu-head.sh && \
-    chmod +x /usr/local/bin/start_yarp2ros2bridge-imu-head.sh && \
-    echo "[Desktop Entry]\n\
-    Version=1.0\n\
-    Type=Application\n\
-    Name=YARP-ROS2 Head IMU Bridge\n\
-    Exec=/usr/local/bin/start_yarp2ros2bridge-imu-head.sh\n\
-    Icon=utilities-terminal\n\
-    Terminal=true\n\
-    Categories=Development;" > /usr/share/applications/yarp2ros2bridge-imu-head.desktop && \
-    chmod 644 /usr/share/applications/yarp2ros2bridge-imu-head.desktop
-
-
-# Move to Desktop
+# Move selected .desktop entries to Desktop safely
 RUN mkdir -p /home/kasm-user/Desktop && \
-    cp /usr/share/applications/yarp2ros2bridge-imu-head.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/yarp2ros2bridge-lidar.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/gazebo.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/yarpserver.desktop /home/kasm-user/Desktop/ && \
-    chmod 644 /home/kasm-user/Desktop/*.desktop && \
+    install -m 644 /usr/share/applications/gazebo.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/GazeboWalledWorldDesigner.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/yarpserver.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/slam_with_yarp.desktop /home/kasm-user/Desktop/ && \
     chown -R kasm-user:kasm-user /home/kasm-user/Desktop
+
+COPY ./simulation_container/wholebodycfg/wbd_ecub_sim.xml /opt/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/estimators/
 
 # Set the default command to run the YARP server
 CMD ["/usr/bin/supervisord && . /opt/ros/${ROS2_DISTRO}/setup.sh"]

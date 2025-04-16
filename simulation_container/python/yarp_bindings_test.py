@@ -13,10 +13,10 @@ lidar_port = yarp.BufferedPortBottle()
 if not lidar_port.open("/lidar_reader"):
     print("Failed to open YARP port")
 
-# Connect to the IMU output (change the source port if necessary)
+# Connect to the IMU output
 yarp.Network.connect("/ergocubSim/head/inertials/measures:o", "/imu_reader")
 
-# Connect to the LIDAR output (change the source port if necessary)
+# Connect to the LIDAR output
 yarp.Network.connect("/ergocubSim/laser:o", "/lidar_reader")
 
 print("Waiting for data...")
@@ -30,7 +30,6 @@ def extract(acc_list):
     if acc_list.isList():
         acc_list = acc_list.asList()  # Convert to Bottle
 
-        # The first element of this list should be another list containing x, y, z
         inner_list = acc_list.get(0)
 
         if inner_list.isList():
