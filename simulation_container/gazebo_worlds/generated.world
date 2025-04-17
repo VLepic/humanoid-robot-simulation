@@ -681,7 +681,7 @@
               <model name="corner_2">
                 <static>true</static>
                 <link name="link">
-                  <pose>-3.068 -2.181 1.000 0 0 0</pose>
+                  <pose>-3.601 -1.580 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -750,7 +750,7 @@
               <model name="corner_5">
                 <static>true</static>
                 <link name="link">
-                  <pose>-4.500 0.000 1.000 0 0 0</pose>
+                  <pose>-3.418 -1.945 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -796,7 +796,7 @@
               <model name="corner_7">
                 <static>true</static>
                 <link name="link">
-                  <pose>-6.000 0.000 1.000 0 0 0</pose>
+                  <pose>-3.068 -2.181 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -842,7 +842,7 @@
               <model name="corner_9">
                 <static>true</static>
                 <link name="link">
-                  <pose>-1.500 0.000 1.000 0 0 0</pose>
+                  <pose>-4.500 0.000 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -888,7 +888,7 @@
               <model name="corner_11">
                 <static>true</static>
                 <link name="link">
-                  <pose>1.080 1.070 1.000 0 0 0</pose>
+                  <pose>-6.000 0.000 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -934,7 +934,7 @@
               <model name="corner_13">
                 <static>true</static>
                 <link name="link">
-                  <pose>0.000 1.500 1.000 0 0 0</pose>
+                  <pose>-1.500 0.000 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -957,7 +957,7 @@
               <model name="corner_14">
                 <static>true</static>
                 <link name="link">
-                  <pose>-4.500 3.000 1.000 0 0 0</pose>
+                  <pose>-7.500 4.500 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -980,7 +980,7 @@
               <model name="corner_15">
                 <static>true</static>
                 <link name="link">
-                  <pose>-7.500 4.500 1.000 0 0 0</pose>
+                  <pose>1.080 1.070 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1003,7 +1003,7 @@
               <model name="corner_16">
                 <static>true</static>
                 <link name="link">
-                  <pose>1.500 0.000 1.000 0 0 0</pose>
+                  <pose>4.500 4.500 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1026,7 +1026,7 @@
               <model name="corner_17">
                 <static>true</static>
                 <link name="link">
-                  <pose>-6.000 -1.500 1.000 0 0 0</pose>
+                  <pose>0.000 1.500 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1049,7 +1049,7 @@
               <model name="corner_18">
                 <static>true</static>
                 <link name="link">
-                  <pose>4.500 4.500 1.000 0 0 0</pose>
+                  <pose>4.500 -4.500 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1072,7 +1072,7 @@
               <model name="corner_19">
                 <static>true</static>
                 <link name="link">
-                  <pose>-3.000 3.000 1.000 0 0 0</pose>
+                  <pose>1.500 0.000 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1095,7 +1095,7 @@
               <model name="corner_20">
                 <static>true</static>
                 <link name="link">
-                  <pose>-4.764 -1.286 1.000 0 0 0</pose>
+                  <pose>-4.500 3.000 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1118,7 +1118,7 @@
               <model name="corner_21">
                 <static>true</static>
                 <link name="link">
-                  <pose>4.500 -4.500 1.000 0 0 0</pose>
+                  <pose>-7.500 -4.500 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1141,7 +1141,7 @@
               <model name="corner_22">
                 <static>true</static>
                 <link name="link">
-                  <pose>-4.269 -1.289 1.000 0 0 0</pose>
+                  <pose>-3.000 3.000 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1164,7 +1164,7 @@
               <model name="corner_23">
                 <static>true</static>
                 <link name="link">
-                  <pose>-7.500 -4.500 1.000 0 0 0</pose>
+                  <pose>-6.000 -1.500 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1187,7 +1187,7 @@
               <model name="corner_24">
                 <static>true</static>
                 <link name="link">
-                  <pose>-3.878 -1.390 1.000 0 0 0</pose>
+                  <pose>-6.000 -3.000 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1210,7 +1210,7 @@
               <model name="corner_25">
                 <static>true</static>
                 <link name="link">
-                  <pose>-6.000 -3.000 1.000 0 0 0</pose>
+                  <pose>3.000 3.000 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1233,7 +1233,7 @@
               <model name="corner_26">
                 <static>true</static>
                 <link name="link">
-                  <pose>3.000 3.000 1.000 0 0 0</pose>
+                  <pose>-4.764 -1.286 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1302,7 +1302,7 @@
               <model name="corner_29">
                 <static>true</static>
                 <link name="link">
-                  <pose>-3.601 -1.580 1.000 0 0 0</pose>
+                  <pose>-4.269 -1.289 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1371,7 +1371,7 @@
               <model name="corner_32">
                 <static>true</static>
                 <link name="link">
-                  <pose>-3.418 -1.945 1.000 0 0 0</pose>
+                  <pose>-3.878 -1.390 1.000 0 0 0</pose>
                   <collision name="collision">
                     <geometry>
                       <cylinder>
@@ -1437,9 +1437,9 @@
                   </model>
                 
           <include>
-            <uri>model://ergocub_modified</uri>
-            <name>ergocub_with_wheels</name>
-            <pose>-1.235 -0.755 0.9 0 0 0.0</pose>
+            <uri>model://ergoCubGazeboV1_3</uri>
+            <name>ergocubV1_3</name>
+            <pose>-1.285 -0.74 1.1999999999999993 0 0 0.0</pose>
           </include>
         
             

@@ -217,6 +217,8 @@ RUN apt-get update && apt-get install -y \
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/ros/galactic/opt/rviz_ogre_vendor/lib
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/ros/galactic/opt/yaml_cpp_vendor/lib
 
+#Installing gnome-terminal
+RUN apt update && apt install -y gnome-terminal dbus-x11
 
 # YARP Server Desktop Entry
 RUN echo '#!/usr/bin/env bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
@@ -225,7 +227,7 @@ RUN echo '#!/usr/bin/env bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh 
     Version=1.0\n\
     Type=Application\n\
     Name=YARP Server\n\
-    Exec=/usr/local/bin/start_yarpserver.sh\n\
+    Exec=gnome-terminal --title=\"YARPserver\" -- bash -c '/usr/local/bin/start_yarpserver.sh'\n\
     Icon=utilities-terminal\n\
     Terminal=true\n\
     Categories=Development;" > /usr/share/applications/yarpserver.desktop && \
@@ -238,20 +240,20 @@ RUN echo '#!/usr/bin/env bash\npython3 /opt/GazeboWalledWorldDesigner/main.py' >
     Version=1.0\n\
     Type=Application\n\
     Name=Gazebo Walled World Designer\n\
-    Exec=/usr/local/bin/start_GazeboWalledWorldDesigner.sh\n\
+    Exec=gnome-terminal --title=\"Gazebo WW designer\" -- bash -c '/usr/local/bin/start_GazeboWalledWorldDesigner.sh'\n\
     Icon=utilities-terminal\n\
     Terminal=true\n\
     Categories=Development;" > /usr/share/applications/GazeboWalledWorldDesigner.desktop && \
     chmod 644 /usr/share/applications/GazeboWalledWorldDesigner.desktop
 
 # Gazebo Desktop Entry
-RUN echo '#!/usr/bin/env bash\ngazebo --verbose /opt/gazebo_worlds/generated.world' > /usr/local/bin/start_gazebo.sh && \
+RUN echo '#!/usr/bin/env bash\ngazebo --verbose -slibgazebo_yarp_clock.so /opt/gazebo_worlds/generated.world' > /usr/local/bin/start_gazebo.sh && \
     chmod +x /usr/local/bin/start_gazebo.sh && \
     echo "[Desktop Entry]\n\
     Version=1.0\n\
     Type=Application\n\
     Name=Gazebo\n\
-    Exec=/usr/local/bin/start_gazebo.sh\n\
+    Exec=gnome-terminal --title=\"Gazebo terminal\" -- bash -c '/usr/local/bin/start_gazebo.sh'\n\
     Icon=utilities-terminal\n\
     Terminal=true\n\
     Categories=Development;" > /usr/share/applications/gazebo.desktop && \
@@ -264,11 +266,30 @@ RUN echo '#!/usr/bin/env bash\nsource /opt/ros/galactic/setup.bash && source /op
     Version=1.0\n\
     Type=Application\n\
     Name=SLAM with YARP\n\
-    Exec=/usr/local/bin/start_slam_with_yarp.sh\n\
+    Exec=gnome-terminal --title=\"SLAM + Bridge\" -- bash -c '/usr/local/bin/start_slam_with_yarp.sh'\n\
     Icon=utilities-terminal\n\
     Terminal=true\n\
     Categories=Development;" > /usr/share/applications/slam_with_yarp.desktop && \
     chmod 644 /usr/share/applications/slam_with_yarp.desktop
+
+# WalkingModules combined launcher including yarprobotinterface
+RUN echo '#!/usr/bin/env bash\n\
+    cd /opt/robotology-superbuild/build-base/install/share/ICUBcontrib/robots/ergoCubGazeboV1/\n\
+    yarprobotinterface --config /opt/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/launch_wholebodydynamics_ecub.xml &\n\
+    sleep 2\n\
+    YARP_CLOCK=/clock WalkingModule &\n\
+    sleep 2\n\
+    YARP_CLOCK=/clock WalkingJoypadModule' > /usr/local/bin/start_walking_modules.sh && \
+    chmod +x /usr/local/bin/start_walking_modules.sh && \
+    echo "[Desktop Entry]\n\
+    Version=1.0\n\
+    Type=Application\n\
+    Name=Walking Modules (Combined)\n\
+    Exec=gnome-terminal --title=\"ErgoCub Walking\" -- bash -c '/usr/local/bin/start_walking_modules.sh'\n\
+    Icon=utilities-terminal\n\
+    Terminal=false\n\
+    Categories=Development;" > /usr/share/applications/walking_modules.desktop && \
+    chmod 644 /usr/share/applications/walking_modules.desktop
 
 # Move selected .desktop entries to Desktop safely
 RUN mkdir -p /home/kasm-user/Desktop && \
@@ -276,6 +297,7 @@ RUN mkdir -p /home/kasm-user/Desktop && \
     install -m 644 /usr/share/applications/GazeboWalledWorldDesigner.desktop /home/kasm-user/Desktop/ && \
     install -m 644 /usr/share/applications/yarpserver.desktop /home/kasm-user/Desktop/ && \
     install -m 644 /usr/share/applications/slam_with_yarp.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/walking_modules.desktop /home/kasm-user/Desktop/ && \
     chown -R kasm-user:kasm-user /home/kasm-user/Desktop
 
 COPY ./simulation_container/wholebodycfg/wbd_ecub_sim.xml /opt/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/estimators/
