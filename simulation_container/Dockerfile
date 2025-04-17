@@ -247,8 +247,11 @@ RUN echo '#!/usr/bin/env bash\npython3 /opt/GazeboWalledWorldDesigner/main.py' >
     chmod 644 /usr/share/applications/GazeboWalledWorldDesigner.desktop
 
 # Gazebo Desktop Entry
-RUN echo '#!/usr/bin/env bash\ngazebo --verbose -slibgazebo_yarp_clock.so /opt/gazebo_worlds/generated.world' > /usr/local/bin/start_gazebo.sh && \
-    chmod +x /usr/local/bin/start_gazebo.sh && \
+RUN RUN echo '#!/usr/bin/env bash\n\
+    export YARP_ROBOT_NAME="ergoCubGazeboV1"\n\
+    gazebo --verbose -slibgazebo_yarp_clock.so /opt/gazebo_worlds/generated.world' \
+    > /usr/local/bin/start_gazebo.sh && \
+    chmod +x /usr/local/bin/start_gazebo.sh \
     echo "[Desktop Entry]\n\
     Version=1.0\n\
     Type=Application\n\
