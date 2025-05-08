@@ -9,8 +9,10 @@ services:
     container_name: Ergocub_simulation
 
     ports:
+      - "11345:11345"
       - "6901:6901" # KasmVNC
       - "10000:10000" # YARP server
+      - "11400-11450:11400-11450"
     environment:
       - PUID=1000
       - PGID=1000

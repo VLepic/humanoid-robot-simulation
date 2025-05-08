@@ -75,11 +75,9 @@ class YARPLidarToROS2(Node):
         laser_msg.ranges = lidar_measurements
 
         if not is_duplicate_scan(laser_msg.ranges):
-            print("⚠️ Duplicate LiDAR scan detected! Skipping message...")
             return
 
         self.publisher.publish(laser_msg)
-        self.get_logger().info(f"Published LIDAR data with {len(lidar_measurements)} points.")
 
 
 

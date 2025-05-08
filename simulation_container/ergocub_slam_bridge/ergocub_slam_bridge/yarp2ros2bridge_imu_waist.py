@@ -7,21 +7,21 @@ from scipy.spatial.transform import Rotation as R
 
 class IMUBridge(Node):
     def __init__(self):
-        super().__init__('Ergocub_imu_head')
+        super().__init__('Ergocub_imu_waist')
 
         # Initialize YARP
         yarp.Network.init()
 
         # Open YARP port
         self.imu_port = yarp.BufferedPortBottle()
-        if not self.imu_port.open("/imu_reader"):
+        if not self.imu_port.open("/imu_reader_waist"):
             self.get_logger().error("Failed to open YARP port")
 
         # Connect to the IMU output port
-        yarp.Network.connect("/ergocubSim/head/inertials/measures:o", "/imu_reader")
+        yarp.Network.connect("/ergocubSim/waist/inertials/measures:o", "imu_reader_waist")
 
         # ROS2 IMU publisher
-        self.imu_publisher = self.create_publisher(Imu, 'imu_head_data', 10)
+        self.imu_publisher = self.create_publisher(Imu, 'imu_waist_data', 10)
 
         # Store last received IMU data to filter duplicates
         self.last_acc = None
@@ -53,7 +53,7 @@ class IMUBridge(Node):
         # Create IMU ROS2 message
         imu_msg = Imu()
         imu_msg.header.stamp = self.get_clock().now().to_msg()
-        imu_msg.header.frame_id = "head_imu_frame"
+        imu_msg.header.frame_id = "waist_imu_frame"
 
         imu_msg.orientation_covariance = [0.01, 0.0, 0.0,
                                           0.0, 0.01, 0.0,
@@ -104,3 +104,4 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
