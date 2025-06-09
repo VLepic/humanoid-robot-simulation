@@ -40,16 +40,23 @@ If you prefer not to use Compose, manually define volumes:
 
 ```bash
 docker run -it --rm \
-  --name humanoid_sim \
+  --name humanoid_robot-simulation \
+  --network bridge \
   -p 6901:6901 \
+  -p 11345:11345 \
   -e VNC_PW=password \
-  -v $(pwd)/gazebo_models:/usr/share/gazebo/models \
-  -v $(pwd)/simulation_container/gazebo_worlds:/opt/gazebo_worlds \
-  -v $(pwd)/simulation_container/ergocub_modified:/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified \
-  -v $(pwd)/simulation_container/yarp-ros2-ergocub-bridging:/opt/yarp-ros2-ergocub-bridging \
-  -v $(pwd)/simulation_container/python:/opt/code \
-  --device=/dev/input/js0 (replace by device) \
+  -e TZ=Europe/Prague \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/python:/opt/code \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/yarp-ros2-ergocub-bridging:/opt/yarp-ros2-ergocub-bridging \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/gazebo_models:/usr/share/gazebo/models \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/gazebo_worlds:/opt/gazebo_worlds \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/ergocub_modified:/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/ergocub_slam_bridge:/opt/ros_ws/src/ergocub_slam_bridge \
+  --device=/dev/input/js0 \
   vlepic/humanoid-robot-simulation:gazeboclassic-ROS2
+
 
 ```
 
