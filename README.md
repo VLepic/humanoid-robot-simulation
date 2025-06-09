@@ -1,6 +1,6 @@
 # Humanoid Robot Simulation
 
-This repository contains a simulation environment for a humanoid robot (e.g., ErgoCub), built using Gazebo Classic, ROS 2, and YARP. The goal is to enable testing of sensor data, SLAM algorithms, and control in a reproducible Docker container setup.
+This repository branch contains a simulation environment for a humanoid robot ErgoCub, built using Gazebo Classic, ROS 2 Galactic, and YARP. The goal is to enable testing of sensor data, SLAM algorithms, and control in a reproducible Docker container setup.
 
 ## 🧩 Repository Contents
 
@@ -23,7 +23,7 @@ docker compose up
 ```
 
 
-The container will launch with access to your X server for GUI apps (e.g., Gazebo). The following local directories are mounted:
+The container will launch a KasmVNC server for GUI apps (e.g., Gazebo) avaible on https://container_ip:6901 and the following local directories are mounted:
 
 | Local Directory        | Container Path                        | Purpose                                |
 |------------------------|----------------------------------------|----------------------------------------|
@@ -36,7 +36,7 @@ The container will launch with access to your X server for GUI apps (e.g., Gazeb
 
 ### Option 2: Manual Docker Run
 
-If you prefer not to use Compose, manually define volumes:
+If you prefer not to use Compose, manually define volumes, parameters and pass usb devices:
 
 ```bash
 docker run -it --rm \
@@ -61,15 +61,16 @@ docker run -it --rm \
 ```
 
 > **Note:** If you omit volume mappings, your local models, bridges, and world files will not be accessible inside the container.
+> **Note:** If you omit passing a joystick - you will not be able to run the walking controller and SLAM packages.
 
 ---
 
 ## 🧠 Docker Image Content
 
-The image `vlepic/humanoid-robot-simulation:gazeboclassic-ROS2` includes:
+This image `vlepic/humanoid-robot-simulation:gazeboclassic-ROS2` includes:
 
-- Ubuntu with ROS 2 (e.g., Galactic or Humble)
-- Gazebo Classic / Modern
+- Ubuntu with ROS 2 Galactic
+- Gazebo Classic
 - YARP libraries
 - Python YARP–ROS 2 bridge utilities
 - SLAM and simulation tools
