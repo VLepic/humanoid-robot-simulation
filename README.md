@@ -27,12 +27,12 @@ The container will launch with access to your X server for GUI apps (e.g., Gazeb
 
 | Local Directory        | Container Path                        | Purpose                                |
 |------------------------|----------------------------------------|----------------------------------------|
-| `gazebo_worlds/`       | `/opt/gazebo_worlds`                   | User-defined Gazebo worlds             |
-| `models/`              | `/opt/models`                          | Custom Gazebo models                   |
-| `yarp_bridge_pkg/`     | `/opt/code/yarp_bridge_pkg`            | YARP-ROS 2 bridge scripts              |
-| `launch/`              | `/opt/code/yarp_bridge_pkg/launch`     | ROS 2 launch files                     |
-| `/tmp/.X11-unix`       | `/tmp/.X11-unix`                       | Access to the X server for GUI         |
-| `/dev`                 | `/dev`                                 | Access to hardware devices (optional)  |
+| `simulation_container/gazebo_worlds/`           | `/opt/gazebo_worlds`                                                            | User-defined Gazebo worlds             |
+| `gazebo_models/`                                | `/usr/share/gazebo/models`                                                     | Custom Gazebo models                   |
+| `simulation_container/ergocub_modified/`        | `/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified` | Modified ErgoCub robot model          |
+| `simulation_container/yarp-ros2-ergocub-bridging/` | `/opt/yarp-ros2-ergocub-bridging`                                              | YARP–ROS 2 bridging config/scripts     |
+| `simulation_container/python/`                  | `/opt/code/`                                                                    | Python control/bridge scripts          |
+
 
 ### Option 2: Manual Docker Run
 
@@ -41,13 +41,16 @@ If you prefer not to use Compose, manually define volumes:
 ```bash
 docker run -it --rm \
   --name humanoid_sim \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v $(pwd)/gazebo_worlds:/opt/gazebo_worlds \
-  -v $(pwd)/models:/opt/models \
-  -v $(pwd)/yarp_bridge_pkg:/opt/code/yarp_bridge_pkg \
-  -v $(pwd)/launch:/opt/code/yarp_bridge_pkg/launch \
+  -p 6901:6901 \
+  -e VNC_PW=password \
+  -v $(pwd)/gazebo_models:/usr/share/gazebo/models \
+  -v $(pwd)/simulation_container/gazebo_worlds:/opt/gazebo_worlds \
+  -v $(pwd)/simulation_container/ergocub_modified:/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified \
+  -v $(pwd)/simulation_container/yarp-ros2-ergocub-bridging:/opt/yarp-ros2-ergocub-bridging \
+  -v $(pwd)/simulation_container/python:/opt/code \
+  --device=/dev/input/js0 (replace by device) \
   vlepic/humanoid-robot-simulation:gazeboclassic-ROS2
+
 ```
 
 > **Note:** If you omit volume mappings, your local models, bridges, and world files will not be accessible inside the container.
@@ -100,22 +103,6 @@ After launching the container (either via Docker Compose or `docker run`), follo
    - Use the `.desktop` launcher labeled `SLAM with YARP`.
    - This will launch SLAM Toolbox and RViz.
    - You can now walk around using the joystick and observe mapping and localization in RViz.
-
----
-
-## 🧩 Project Structure
-
-```
-humanoid-robot-simulation/
-│
-├── docker-compose.yml             # Docker Compose startup file
-├── gazebo_worlds/                 # User-created worlds
-├── models/                        # Custom models
-├── yarp_bridge_pkg/              # YARP <-> ROS 2 bridge
-├── launch/                        # ROS 2 launch files
-├── docker/                        # .desktop launchers
-└── README.md
-```
 
 ---
 
