@@ -9,8 +9,10 @@ services:
     container_name: Ergocub_simulation
 
     ports:
+      - "11345:11345"
       - "6901:6901" # KasmVNC
       - "10000:10000" # YARP server
+      - "11400-11450:11400-11450"
     environment:
       - PUID=1000
       - PGID=1000
@@ -22,6 +24,8 @@ services:
       - ./simulation_container/yarp-ros2-ergocub-bridging/:/opt/yarp-ros2-ergocub-bridging/
       - ./simulation_container/python/:/opt/code/
       - ./gazebo_models:/usr/share/gazebo/models
+      - ./simulation_container/ergocub_modified/:/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified
+      - ./simulation_container/gazebo_worlds/:/opt/gazebo_worlds/
     restart: unless-stopped
     deploy:
       resources:

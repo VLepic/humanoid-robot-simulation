@@ -13,7 +13,7 @@ class LidarSubscriber(Node):
         super().__init__('lidar_subscriber')
         self.subscription = self.create_subscription(
             LaserScan,
-            'lidar',  # Topic name
+            'scan',  # Topic name
             self.lidar_callback,
             10  # QoS profile depth
         )

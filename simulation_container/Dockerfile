@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 ARG ROBOTOLOGY_SUPERBUILD_VERSION=2024.11.2
 ARG ERGOCUB_SOFTWARE_VERSION=0.7.6
 ARG CMAKE_VERSION=3.31.5
-ARG ROS2_DISTRO=foxy
+ARG ROS2_DISTRO=galactic
 
 
 USER root
@@ -53,7 +53,7 @@ RUN apt update && apt install -y \
     sh -c 'echo "deb [arch=$(dpkg --print-architecture)] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list' && \
     apt update && \
     apt install -y ros-${ROS2_DISTRO}-desktop python3-colcon-common-extensions python3-rosdep python3-argcomplete ros-${ROS2_DISTRO}-test-msgs python3-dev && \
-    rm -rf /var/lib/apt/lists/* \
+    rm -rf /var/lib/apt/lists/*
 
 # ROS2 & python environment variables
 ENV ROS_VERSION=2
@@ -152,8 +152,10 @@ RUN git clone https://github.com/robotology/unicycle-footstep-planner /opt/unicy
 ENV UnicyclePlanner_DIR=${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$UnicyclePlanner_DIR/lib
 
+RUN echo 12
+
 # Clone and install walking controllers
-RUN git clone https://github.com/robotology/walking-controllers.git /opt/walking-controllers && \
+RUN git clone https://github.com/VLepic/walking-controllers.git /opt/walking-controllers && \
     cd /opt/walking-controllers && \
     mkdir build && cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX} -DCMAKE_PREFIX_PATH=${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX} .. && \
@@ -165,50 +167,177 @@ ENV WalkingControllers_INSTALL_DIR=${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}
 ENV PATH=${PATH}:${WalkingControllers_INSTALL_DIR}/bin
 ENV YARP_DATA_DIRS=${YARP_DATA_DIRS}:${WalkingControllers_INSTALL_DIR}/share/ICUBcontrib
 
-# Creation of desktop icons
-# Yarpserver
-RUN echo '#!/bin/bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
-    chmod +x /usr/local/bin/start_yarpserver.sh && \
-# Gazebo
-    echo '#!/bin/bash\ngazebo --verbose' > /usr/local/bin/start_gazebo.sh && \
-    chmod +x /usr/local/bin/start_gazebo.sh && \
-# Yarp-ROS LiDAR Bridge
-    echo '#!/bin/bash\nyarpdev --from /opt/yarp-ros2-ergocub-bridging/lidar_config.ini' > /usr/local/bin/start_yarp_ros_lidar_bridge.sh && \
-    chmod +x /usr/local/bin/start_yarp_ros_lidar_bridge.sh && \
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    git \
+    qt5-default \
+    qtbase5-dev \
+    qtbase5-dev-tools \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libx11-xcb1 \
+    && rm -rf /var/lib/apt/lists/* && \
+    pip3 install PyQt5 && \
+    pip install transforms3d
+
+# Klonování aplikace (větev PyQt5)
+RUN git clone --branch GazeboClassicPyQt5 https://github.com/VLepic/GazeboWalledWorldDesigner /opt/GazeboWalledWorldDesigner
+
+RUN mkdir ${ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX}/share/ergoCub/robots/ergocub_modified
+
+RUN apt install -y curl gnupg2 lsb-release && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
+    sudo apt update && \
+    apt install -y ros-${ROS2_DISTRO}-gazebo-ros-pkgs
+
+# Install SLAM toolbox
+RUN . &&\
+    apt install -y \
+    ros-galactic-slam-toolbox \
+    ros-galactic-tf2-tools \
+    ros-galactic-nav2-map-server \
+    ros-galactic-xacro \
+    ros-galactic-tf-transformations \
+    python3-vcstool
+
+
+RUN apt update && apt install -y \
+    ros-${ROS2_DISTRO}-robot-localization
+
+# Závislosti pro scipy
+RUN apt update && apt install -y \
+    python3-pip \
+    python3-dev \
+    build-essential \
+    libatlas-base-dev \
+    liblapack-dev \
+    gfortran \
+    libffi-dev
+
+# Instalace scipy
+RUN pip3 install numpy scipy
+
+
+#Build ergocub ros2 package
+COPY ./simulation_container/ergocub_slam_bridge /opt/ros_ws/src/ergocub_slam_bridge
+WORKDIR /opt/ros_ws
+RUN . /opt/ros/galactic/setup.sh && colcon build --merge-install --install-base /opt/ros/galactic
+
+#Installing rviz2
+RUN apt-get update && apt-get install -y \
+    ros-galactic-rviz2 \
+    libogre-1.12-dev \
+    ros-galactic-rqt \
+    ros-galactic-nav2-bringup \
+    libcanberra-gtk-module &&\
+    rm -rf /var/lib/apt/lists/*
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/ros/galactic/opt/rviz_ogre_vendor/lib
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/ros/galactic/opt/yaml_cpp_vendor/lib
+
+#Installing gnome-terminal
+RUN apt update && apt install -y gnome-terminal dbus-x11 nano
+
 # YARP Server Desktop Entry
+RUN echo '#!/usr/bin/env bash\nyarpserver' > /usr/local/bin/start_yarpserver.sh && \
+    chmod +x /usr/local/bin/start_yarpserver.sh && \
     echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=YARP Server\n\
-Exec=/usr/local/bin/start_yarpserver.sh\n\
-Icon=utilities-terminal\n\
-Terminal=true" > /usr/share/applications/yarpserver.desktop && \
-    chmod +x /usr/share/applications/yarpserver.desktop && \
+    Version=1.0\n\
+    Type=Application\n\
+    Name=YARP Server\n\
+    Exec=gnome-terminal --title=\"YARPserver\" -- bash -c '/usr/local/bin/start_yarpserver.sh'\n\
+    Icon=utilities-terminal\n\
+    Terminal=true\n\
+    Categories=Development;" > /usr/share/applications/yarpserver.desktop && \
+    chmod 644 /usr/share/applications/yarpserver.desktop
+
+# YARP Server Desktop Entry
+RUN echo '#!/usr/bin/env bash\ngzclient' > /usr/local/bin/start_gzclient.sh && \
+    chmod +x /usr/local/bin/start_yarpserver.sh && \
+    echo "[Desktop Entry]\n\
+    Version=1.0\n\
+    Type=Application\n\
+    Name=Gazebo Client\n\
+    Exec=gnome-terminal --title=\"Gazebo Client\" -- bash -c '/usr/local/bin/start_gzclient.sh'\n\
+    Icon=utilities-terminal\n\
+    Terminal=True\n\
+    Categories=Development;" > /usr/share/applications/gzclient.desktop && \
+    chmod 644 /usr/share/applications/gzclient.desktop
+
+# Gazebo Walled World Designer
+RUN echo '#!/usr/bin/env bash\npython3 /opt/GazeboWalledWorldDesigner/main.py' > /usr/local/bin/start_GazeboWalledWorldDesigner.sh && \
+    chmod +x /usr/local/bin/start_GazeboWalledWorldDesigner.sh && \
+    echo "[Desktop Entry]\n\
+    Version=1.0\n\
+    Type=Application\n\
+    Name=Gazebo Walled World Designer\n\
+    Exec=gnome-terminal --title=\"Gazebo WW designer\" -- bash -c '/usr/local/bin/start_GazeboWalledWorldDesigner.sh'\n\
+    Icon=utilities-terminal\n\
+    Terminal=true\n\
+    Categories=Development;" > /usr/share/applications/GazeboWalledWorldDesigner.desktop && \
+    chmod 644 /usr/share/applications/GazeboWalledWorldDesigner.desktop
+
 # Gazebo Desktop Entry
+RUN echo '#!/usr/bin/env bash\n\
+    export YARP_ROBOT_NAME="ergoCubGazeboV1"\n\
+    gzserver --verbose -slibgazebo_yarp_clock.so /opt/gazebo_worlds/generated.world' \
+    > /usr/local/bin/start_gazebo.sh && \
+    chmod +x /usr/local/bin/start_gazebo.sh && \
     echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=Gazebo\n\
-Exec=/usr/local/bin/start_gazebo.sh\n\
-Icon=utilities-terminal\n\
-Terminal=true" > /usr/share/applications/gazebo.desktop && \
-    chmod +x /usr/share/applications/gazebo.desktop && \
-# YARP-ROS LiDAR Bridge Desktop Entry
+    Version=1.0\n\
+    Type=Application\n\
+    Name=Gazebo Server\n\
+    Exec=gnome-terminal --title=\"Gazebo server\" -- bash -c '/usr/local/bin/start_gazebo.sh'\n\
+    Icon=utilities-terminal\n\
+    Terminal=true\n\
+    Categories=Development;" > /usr/share/applications/gazebo.desktop && \
+    chmod 644 /usr/share/applications/gazebo.desktop
+
+# ROS2 Launch for slam_with_yarp.launch.py
+RUN echo '#!/usr/bin/env bash\nsource /opt/ros/galactic/setup.bash && source /opt/ros/galactic/local_setup.bash && ros2 launch ergocub_slam_bridge slam_with_yarp.launch.py' > /usr/local/bin/start_slam_with_yarp.sh && \
+    chmod +x /usr/local/bin/start_slam_with_yarp.sh && \
     echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=YARP-ROS LiDAR Bridge\n\
-Exec=/usr/local/bin/start_yarp_ros_lidar_bridge.sh\n\
-Icon=utilities-terminal\n\
-Terminal=true" > /usr/share/applications/yarp_ros_lidar_bridge.desktop && \
-    chmod +x /usr/share/applications/yarp_ros_lidar_bridge.desktop && \
-# Move to Desktop
-    mkdir -p /home/kasm-user/Desktop && \
-    cp /usr/share/applications/yarpserver.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/gazebo.desktop /home/kasm-user/Desktop/ && \
-    cp /usr/share/applications/yarp_ros_lidar_bridge.desktop /home/kasm-user/Desktop/ && \
-    chmod +x /home/kasm-user/Desktop/*.desktop && \
+    Version=1.0\n\
+    Type=Application\n\
+    Name=SLAM with YARP\n\
+    Exec=gnome-terminal --title=\"SLAM + Bridge\" -- bash -c '/usr/local/bin/start_slam_with_yarp.sh'\n\
+    Icon=utilities-terminal\n\
+    Terminal=true\n\
+    Categories=Development;" > /usr/share/applications/slam_with_yarp.desktop && \
+    chmod 644 /usr/share/applications/slam_with_yarp.desktop
+
+# WalkingModules combined launcher including wholebody dynamics
+RUN echo '#!/usr/bin/env bash\n\
+    cd /opt/robotology-superbuild/build-base/install/share/ICUBcontrib/robots/ergoCubGazeboV1/\n\
+    yarprobotinterface --config /opt/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/launch_wholebodydynamics_ecub.xml &\n\
+    sleep 2\n\
+    YARP_CLOCK=/clock WalkingModule &\n\
+    sleep 2\n\
+    YARP_CLOCK=/clock WalkingJoypadModule' > /usr/local/bin/start_walking_modules.sh && \
+    chmod +x /usr/local/bin/start_walking_modules.sh && \
+    echo "[Desktop Entry]\n\
+    Version=1.0\n\
+    Type=Application\n\
+    Name=Walking Modules (Combined)\n\
+    Exec=gnome-terminal --title=\"ErgoCub Walking\" -- bash -c '/usr/local/bin/start_walking_modules.sh'\n\
+    Icon=utilities-terminal\n\
+    Terminal=false\n\
+    Categories=Development;" > /usr/share/applications/walking_modules.desktop && \
+    chmod 644 /usr/share/applications/walking_modules.desktop
+
+# Move selected .desktop entries to Desktop safely
+RUN mkdir -p /home/kasm-user/Desktop && \
+    install -m 644 /usr/share/applications/gazebo.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/gzclient.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/GazeboWalledWorldDesigner.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/yarpserver.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/slam_with_yarp.desktop /home/kasm-user/Desktop/ && \
+    install -m 644 /usr/share/applications/walking_modules.desktop /home/kasm-user/Desktop/ && \
     chown -R kasm-user:kasm-user /home/kasm-user/Desktop
 
+COPY ./simulation_container/wholebodycfg/wbd_ecub_sim.xml /opt/robotology-superbuild/src/ergocub-software/urdf/ergoCub/conf/estimators/
+COPY ./simulation_container/wholebodycfg/dcm_walking_with_joypad.ini /opt/robotology-superbuild/build-base/install/share/ICUBcontrib/robots/ergoCubGazeboV1/
 # Set the default command to run the YARP server
-CMD ["/usr/bin/supervisord && . /opt/ros/foxy/setup.sh"]
+CMD ["/usr/bin/supervisord && . /opt/ros/${ROS2_DISTRO}/setup.sh"]
