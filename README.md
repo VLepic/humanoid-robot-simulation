@@ -61,7 +61,7 @@ docker run -it --rm \
 ```
 
 > **Note:** If you omit volume mappings, your local models, bridges, and world files will not be accessible inside the container.
-> **Note:** If you omit passing a joystick - you will not be able to run the walking controller and SLAM packages.
+**Note:** If you omit passing a joystick - you will not be able to run the walking controller and SLAM packages.
 
 ---
 
