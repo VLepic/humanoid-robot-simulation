@@ -22,6 +22,7 @@ Use the following command to launch:
 docker compose up
 ```
 
+
 The container will launch with access to your X server for GUI apps (e.g., Gazebo). The following local directories are mounted:
 
 | Local Directory        | Container Path                        | Purpose                                |
