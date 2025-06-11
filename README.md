@@ -41,7 +41,6 @@ If you prefer not to use Compose, manually define volumes, parameters and pass u
 ```bash
 docker run -it --rm \
   --name humanoid_robot-simulation \
-  --network bridge \
   -p 6901:6901 \
   -p 11345:11345 \
   -e VNC_PW=password \
