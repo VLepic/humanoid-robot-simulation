@@ -1,6 +1,6 @@
 # Humanoid Robot Simulation
 
-This repository contains a simulation environment for a humanoid robot (e.g., ErgoCub), built using Gazebo Classic, ROS 2, and YARP. The goal is to enable testing of sensor data, SLAM algorithms, and control in a reproducible Docker container setup.
+This repository branch contains a simulation environment for a humanoid robot ErgoCub, built using Gazebo Classic, ROS 2 Galactic, and YARP. The goal is to enable testing of sensor data, SLAM algorithms, and control in a reproducible Docker container setup.
 
 ## 🧩 Repository Contents
 
@@ -23,43 +23,52 @@ docker compose up
 ```
 
 
-The container will launch with access to your X server for GUI apps (e.g., Gazebo). The following local directories are mounted:
+The container will launch a KasmVNC server for GUI apps (e.g., Gazebo) avaible on https://container_ip:6901 and the following local directories are mounted:
 
 | Local Directory        | Container Path                        | Purpose                                |
 |------------------------|----------------------------------------|----------------------------------------|
-| `gazebo_worlds/`       | `/opt/gazebo_worlds`                   | User-defined Gazebo worlds             |
-| `models/`              | `/opt/models`                          | Custom Gazebo models                   |
-| `yarp_bridge_pkg/`     | `/opt/code/yarp_bridge_pkg`            | YARP-ROS 2 bridge scripts              |
-| `launch/`              | `/opt/code/yarp_bridge_pkg/launch`     | ROS 2 launch files                     |
-| `/tmp/.X11-unix`       | `/tmp/.X11-unix`                       | Access to the X server for GUI         |
-| `/dev`                 | `/dev`                                 | Access to hardware devices (optional)  |
+| `simulation_container/gazebo_worlds/`           | `/opt/gazebo_worlds`                                                            | User-defined Gazebo worlds             |
+| `gazebo_models/`                                | `/usr/share/gazebo/models`                                                     | Custom Gazebo models                   |
+| `simulation_container/ergocub_modified/`        | `/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified` | Modified ErgoCub robot model          |
+| `simulation_container/yarp-ros2-ergocub-bridging/` | `/opt/yarp-ros2-ergocub-bridging`                                              | YARP–ROS 2 bridging config/scripts     |
+| `simulation_container/python/`                  | `/opt/code/`                                                                    | Python control/bridge scripts          |
+
 
 ### Option 2: Manual Docker Run
 
-If you prefer not to use Compose, manually define volumes:
+If you prefer not to use Compose, manually define volumes, parameters and pass usb devices:
 
 ```bash
 docker run -it --rm \
-  --name humanoid_sim \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v $(pwd)/gazebo_worlds:/opt/gazebo_worlds \
-  -v $(pwd)/models:/opt/models \
-  -v $(pwd)/yarp_bridge_pkg:/opt/code/yarp_bridge_pkg \
-  -v $(pwd)/launch:/opt/code/yarp_bridge_pkg/launch \
+  --name humanoid_robot-simulation \
+  -p 6901:6901 \
+  -p 11345:11345 \
+  -e VNC_PW=password \
+  -e TZ=Europe/Prague \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/python:/opt/code \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/yarp-ros2-ergocub-bridging:/opt/yarp-ros2-ergocub-bridging \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/gazebo_models:/usr/share/gazebo/models \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/gazebo_worlds:/opt/gazebo_worlds \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/ergocub_modified:/opt/robotology-superbuild/build-base/install/share/ergoCub/robots/ergocub_modified \
+  -v /mnt/user/appdata/humanoid-robot-simulation/simulation_container/ergocub_slam_bridge:/opt/ros_ws/src/ergocub_slam_bridge \
+  --device=/dev/input/js0 \
   vlepic/humanoid-robot-simulation:gazeboclassic-ROS2
+
+
 ```
 
-> **Note:** If you omit volume mappings, your local models, bridges, and world files will not be accessible inside the container.
+> **Note:** If you omit volume mappings, your local models, bridges, and world files will not be accessible inside the container. If you omit passing a joystick - you will not be able to run the walking controller and SLAM packages.
 
 ---
 
 ## 🧠 Docker Image Content
 
-The image `vlepic/humanoid-robot-simulation:gazeboclassic-ROS2` includes:
+This image `vlepic/humanoid-robot-simulation:gazeboclassic-ROS2` includes:
 
-- Ubuntu with ROS 2 (e.g., Galactic or Humble)
-- Gazebo Classic / Modern
+- Ubuntu with ROS 2 Galactic
+- Gazebo Classic
 - YARP libraries
 - Python YARP–ROS 2 bridge utilities
 - SLAM and simulation tools
@@ -100,22 +109,6 @@ After launching the container (either via Docker Compose or `docker run`), follo
    - Use the `.desktop` launcher labeled `SLAM with YARP`.
    - This will launch SLAM Toolbox and RViz.
    - You can now walk around using the joystick and observe mapping and localization in RViz.
-
----
-
-## 🧩 Project Structure
-
-```
-humanoid-robot-simulation/
-│
-├── docker-compose.yml             # Docker Compose startup file
-├── gazebo_worlds/                 # User-created worlds
-├── models/                        # Custom models
-├── yarp_bridge_pkg/              # YARP <-> ROS 2 bridge
-├── launch/                        # ROS 2 launch files
-├── docker/                        # .desktop launchers
-└── README.md
-```
 
 ---
 
