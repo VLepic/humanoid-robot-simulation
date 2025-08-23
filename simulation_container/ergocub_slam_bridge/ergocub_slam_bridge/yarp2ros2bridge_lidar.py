@@ -72,7 +72,7 @@ class YARPLidarToROS2(Node):
         laser_msg.scan_time = 0.01  # Set to 10 ms (100 Hz)
         laser_msg.range_min = min_range
         laser_msg.range_max = max_range
-        laser_msg.ranges = lidar_measurements
+        laser_msg.ranges = list(reversed(lidar_measurements))
 
         if not is_duplicate_scan(laser_msg.ranges):
             return
